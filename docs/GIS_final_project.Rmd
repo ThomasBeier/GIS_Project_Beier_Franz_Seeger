@@ -1,0 +1,152 @@
+---
+title: "Final Project - GIS"
+author: "Thomas Beier, Florian Franz, Konstantin Seeger"
+date: "09.02.2022"
+output: pdf_document
+---
+
+Using the `lidr` package by J.-R. Roussel for processing LiDAR data and creating a forest microclimate model.
+
+For information see the book (https://r-lidar.github.io/lidRbook/index.html), the package documentation (https://cran.r-project.org/web/packages/lidR/index.html) and also this publication (https://www.sciencedirect.com/science/article/pii/S0034425720304314).
+
+
+
+```{r, results='hide', warning=FALSE, message=FALSE, echo=FALSE}
+### Set up a working environment
+
+require(envimaR)
+
+packagesToLoad = c("mapview", "raster", "sf", "caret", "exactextractr",  
+                   "doParallel", "CAST", "ranger","rasterVis","dplyr",
+                   "lidR", "RColorBrewer")
+
+# Define a project rootfolder
+# This is the mandantory rootfolder of the whole project, "E:/" has to be changed to the respective directory where the edu folder is located 
+rootDir = "E:/edu/GIS_Project_Beier_Franz_Seeger"  
+
+projectDirList   = c("data/", # data folder
+                     "data/raw/",
+                     "data/processed/", # folder for processed data (.rds)
+                     "data/modelling/",
+                     "data/modelling/model_training_data/",
+                     "data/modelling/models/",
+                     "data/modelling/prediction/",
+                     "data/modelling/validation/",
+                     "docs/",
+                     "tmp/",
+                     "src/",
+                     "src/functions/")
+
+# Now set automatically root direcory, folder structure and load libraries
+envrmt = envimaR::createEnvi(root_folder = rootDir,
+                             folders = projectDirList,
+                             path_prefix = "path_",
+                             libs = packagesToLoad,
+                             alt_env_id = "COMPUTERNAME",
+                             alt_env_value = "PCRZP",
+                             alt_env_root_folder = "F:/BEN/edu")
+## set raster temp path
+raster::rasterOptions(tmpdir = envrmt$path_tmp)
+```
+
+### Read las file
+
+```{r, warning=FALSE, message=FALSE}
+# The las file must be in the folder data/raw!!!
+las_files <- list.files(envrmt$path_raw,
+                       pattern = glob2rx("*.las"),
+                       full.names = TRUE)
+
+las <- readLAS(las_files[1])
+
+# Assign a coord. ref. syst. (CRS)
+# In this case UTM zone 32N
+epsg_number <- 25832
+crs(las) <- epsg_number
+
+las
+
+# Check las file
+las_check(las)
+```
+
+```{r}
+### Some plotting...
+
+# Basic 3D plot
+#plot(las)
+
+# Example cross section 2D plot (along a transect)
+p1 <- c(477500, 5632500) # these are coordinates
+p2 <- c(478217.5, 5632500 ) # these are coordinates
+las_tr <- clip_transect(las, p1, p2, width = 4, xz = TRUE)
+
+ggplot(las_tr@data, aes(X,Z, color = Z)) + 
+  geom_point(size = 0.5) + 
+  coord_equal() + 
+  theme_minimal() +
+  scale_color_gradientn(colours = height.colors(25))
+```
+
+### Create a canopy height model (CHM)
+
+```{r, warning=FALSE, message=FALSE}
+# Height normalization within the point cloud using invert distance weighting
+norm_las <- normalize_height(las, knnidw())
+
+# Check if all ground points are 0
+hist(filter_ground(norm_las)$Z, 
+     breaks = seq(-0.45, 0.45, 0.01),
+     main = "", xlab = "Elevation")
+
+# Calculate CHM using pit-free algorithm (we can discuss about this --> which algorithm we want to use)
+chm <- grid_canopy(norm_las, res = 1.0, 
+                   pitfree(thresholds = c(0, 2,5, 10, 15),
+                           max_edge = c(0, 1.5)))
+chm # min value of -0.003 and max value of 42.168...maybe false
+```
+
+```{r, echo=FALSE}
+# tmap plot
+library(tmap)
+tm_shape(chm) +
+tm_raster(title = "Pitfree CHM 1 m² cells", palette = height.colors(20)) +
+  tm_grid() +
+  tm_layout(legend.outside = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
