@@ -5,6 +5,8 @@ date: "09.02.2022"
 output: pdf_document
 ---
 
+## Spatial prediction of forest microclimate using LiDAR data
+
 Using the `lidr` package by J.-R. Roussel for processing LiDAR data and creating a forest microclimate model.
 
 For information see the book (https://r-lidar.github.io/lidRbook/index.html), the package documentation (https://cran.r-project.org/web/packages/lidR/index.html) and also this publication (https://www.sciencedirect.com/science/article/pii/S0034425720304314).
@@ -88,7 +90,27 @@ ggplot(las_tr@data, aes(X,Z, color = Z)) +
   scale_color_gradientn(colours = height.colors(25))
 ```
 
-### Create a canopy height model (CHM)
+### Predictor set
+
+List of variables used for forest microclimate prediction:
+
+- Canopy height (CHM)
+- Standard metrics (mean, max, sd...)
+- Mean height of first returns
+- Maxiumum height of first returns
+- Standard deviation of first returns
+- Point density
+- Pulse density
+- Leaf area index (LAI)
+- Elevation (DTM)
+- Slope
+- Exposition
+- Topographic position index (TPI)
+- Irradiance
+
+All of the predictors are calculated at the grid level within 1 m  x 1 m pixels.
+
+#### Canopy height model (CHM)
 
 ```{r, warning=FALSE, message=FALSE}
 # Height normalization within the point cloud using invert distance weighting
@@ -101,8 +123,9 @@ hist(filter_ground(norm_las)$Z,
 
 # Calculate CHM using pit-free algorithm (we can discuss about this --> which algorithm we want to use)
 chm <- grid_canopy(norm_las, res = 1.0, 
-                   pitfree(thresholds = c(0, 2,5, 10, 15),
+                   pitfree(thresholds = c(0, 2, 5, 10, 15),
                            max_edge = c(0, 1.5)))
+
 chm # min value of -0.003 and max value of 42.168...maybe false
 ```
 
@@ -115,11 +138,145 @@ tm_raster(title = "Pitfree CHM 1 m² cells", palette = height.colors(20)) +
   tm_layout(legend.outside = TRUE)
 ```
 
+#### Standard metrics of the canopy
+
+```{r}
+chm_stdmetrics <- grid_metrics(norm_las, .stdmetrics, res = 1.0)
+plot(chm_stdmetrics, col = height.colors(20))
+```
+
+#### First returns mean height, maxiumum height and standard deviation of the height from the first returns
+
+```{r}
+# Function for calculating mean, max and standard deviation of first returns
+first_return_metrics <- function(x) {
+  list(mean = mean(x),
+       max = max(x), 
+       sd(x))
+}
+
+return_mean_max_sd <- grid_metrics(norm_las, func = ~first_return_metrics(Z),
+                                   res = 1.0, filter = ~ReturnNumber == 1L)
+```
+
+```{r, echo=FALSE, warning=FALSE, fig.width=12, fig.height=7}
+par_org <- par()
+par(mfrow = c(2,3), cex.main = 1)
+
+hist(return_mean_max_sd[[1]],
+     main = "Histogram of first returns mean height",
+     xlab = "Height [m]")
+
+hist(return_mean_max_sd[[2]],
+     main = "Histogram of first returns maximum height",
+     xlab = "Height [m]")
+
+hist(return_mean_max_sd[[3]],
+     main = "Histogram of first returns height standard deviation",
+     xlab = "Height [m]")
+
+raster::plot(return_mean_max_sd[[1]],
+             col = height.colors(20),
+             main = "First returns mean height 1 m² cells")
+
+raster::plot(return_mean_max_sd[[2]],
+             col = height.colors(20),
+             main = "First returns maximum height 1 m² cells")
+
+col_pal <- colorRampPalette(c("forestgreen","green","yellow","red","purple4"))
+raster::plot(return_mean_max_sd[[3]],
+             col =  col_pal(10),
+             main = "First returns height standard deviation 1 m² cells")
+
+par(par_org)
+```
+
+#### Point and pulse density
+
+```{r}
+point_density <- grid_metrics(norm_las, ~length(Z)/1, res = 1.0)
+pulse_density <- grid_metrics(norm_las, ~length(Z)/1, res = 1.0,
+                              filter = ~ReturnNumber == 1L)
+```
+
+```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=7}
+par(mfrow = c(2,2), cex.main = 1)
+
+hist(point_density,
+     main = "Histogram of point density",
+     xlab = "Number of points")
+
+hist(pulse_density,
+     main = "Histogram of pulse density",
+     xlab = "Number of points")
+
+raster::plot(point_density, 
+             col = gray.colors(50,0,1),
+             main = "Point density 1 m² cells")
+
+raster::plot(pulse_density, 
+             col = gray.colors(50,0,1),
+             main = "Pulse density 1 m² cells")
+
+par(par_org)
+```
+
+#### Leaf area index (LAI)
 
 
 
+#### Elevation
 
+```{r, warning=FALSE}
+# Calculate DTM using invert distance weighting
+dtm <- grid_terrain(las, res = 1.0, algorithm = knnidw(k = 6L, p = 2))
+```
 
+```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=5}
+par(mfrow = c(1,2), cex.main = 1)
+
+hist(dtm,
+     breaks = 20,
+     main = "Histogram of the elevation",
+     xlab = "Elevation [m]")
+
+lidR::plot(dtm,
+           col = height.colors(50),
+           main = "Invert distance weighting DTM 1 m² cells")
+
+par(par_org)
+```
+
+#### Slope, exposition and TPI
+
+```{r}
+slope <- raster::terrain(dtm, opt = "slope", unit = "degrees", neighbors = 8)
+exposition <- raster::terrain(dtm, opt = "aspect", unit = "degrees", neighbors = 8)
+```
+
+```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=7}
+par(mfrow = c(2,2), cex.main = 1)
+
+hist(slope,
+     main = "Histogram of slope",
+     xlab = "Slope [°]")
+
+hist(exposition,
+     main = "Histogram of exposition",
+     xlab = "Exposition [°]")
+
+raster::plot(slope,
+             col = topo.colors(25),
+             main = "Slope in degrees")
+
+raster::plot(exposition,
+             col = bpy.colors(25),
+             main = "Exposition in degrees")
+
+par(par_org)
+```
+
+#### Irradiance
 
 
 
