@@ -223,6 +223,33 @@ par(par_org)
 
 #### Leaf area index (LAI)
 
+```{r}
+# Calculate Leaf area index with the "canopyLazR" package. Installation can be found on the following github page: https://github.com/akamoske/canopyLazR
+# Convert .laz or .las file into a voxelized lidar array
+laz.data <- laz.to.array(laz.file.path = file.path(envrmt$path_raw,"las_mof.las"), 
+                         voxel.resolution = 10, 
+                         z.resolution = 1,
+                         use.classified.returns = TRUE)
+
+# Level the voxelized array to mimic a canopy height model
+level.canopy <- canopy.height.levelr(lidar.array = laz.data)
+
+# Estimate Leaf Area Density (LAD) for each voxel in leveled array
+lad.estimates <- machorn.lad(leveld.lidar.array = level.canopy, 
+                             voxel.height = 1, 
+                             beer.lambert.constant = NULL)
+
+# Convert the LAD array into a single raster stack
+lad.raster <- lad.array.to.raster.stack(lad.array = lad.estimates, 
+                                        laz.array = laz.data, 
+                                        epsg.code = 25832) # The epsg code maybe needs to be changed. 
+
+
+# Create a single LAI raster from the LAD raster stack
+lai.raster <- raster::calc(lad.raster, fun = sum, na.rm = TRUE)
+
+plot(lai.raster)
+```
 
 
 #### Elevation
@@ -252,10 +279,11 @@ par(par_org)
 ```{r}
 slope <- raster::terrain(dtm, opt = "slope", unit = "degrees", neighbors = 8)
 exposition <- raster::terrain(dtm, opt = "aspect", unit = "degrees", neighbors = 8)
+tpi <- raster::terrain(dtm, opt = "tpi")
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=7}
-par(mfrow = c(2,2), cex.main = 1)
+par(mfrow = c(2,3), cex.main = 1)
 
 hist(slope,
      main = "Histogram of slope",
@@ -265,6 +293,9 @@ hist(exposition,
      main = "Histogram of exposition",
      xlab = "Exposition [°]")
 
+hist(tpi,
+     main = "Histogram of tpi")
+
 raster::plot(slope,
              col = topo.colors(25),
              main = "Slope in degrees")
@@ -272,6 +303,10 @@ raster::plot(slope,
 raster::plot(exposition,
              col = bpy.colors(25),
              main = "Exposition in degrees")
+
+raster::plot(tpi,
+             col = topo.colors(25),
+             main = "TPI")
 
 par(par_org)
 ```
