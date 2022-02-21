@@ -29,6 +29,7 @@ rootDir = "E:/edu/GIS_Project_Beier_Franz_Seeger"
 projectDirList   = c("data/", # data folder
                      "data/raw/",
                      "data/processed/", # folder for processed data (.rds)
+                     "data/predictors/",
                      "data/modelling/",
                      "data/modelling/model_training_data/",
                      "data/modelling/models/",
@@ -121,11 +122,20 @@ hist(filter_ground(norm_las)$Z,
      breaks = seq(-0.45, 0.45, 0.01),
      main = "", xlab = "Elevation")
 
+if (!file.exists(paste0(envrmt$path_predictors, "/chm.RDS"))) {
 # Calculate CHM using pit-free algorithm (we can discuss about this --> which algorithm we want to use)
-chm <- grid_canopy(norm_las, res = 1.0, 
-                   pitfree(thresholds = c(0, 2, 5, 10, 15),
-                           max_edge = c(0, 1.5)))
+  chm <- grid_canopy(norm_las, res = 1.0, 
+                    pitfree(thresholds = c(0, 2, 5, 10, 15),
+                            max_edge = c(0, 1.5)))
 
+  saveRDS(chm, paste0(envrmt$path_predictors, "/chm.RDS"))
+  
+} else {
+  
+  chm <- readRDS(paste0(envrmt$path_predictors, "/chm.RDS"))
+
+}
+  
 chm # min value of -0.003 and max value of 42.168...maybe false
 ```
 
@@ -141,7 +151,18 @@ tm_raster(title = "Pitfree CHM 1 m² cells", palette = height.colors(20)) +
 #### Standard metrics of the canopy
 
 ```{r}
-chm_stdmetrics <- grid_metrics(norm_las, .stdmetrics, res = 1.0)
+if (!file.exists(paste0(envrmt$path_predictors, "/stdmetrics.RDS"))) {
+
+  chm_stdmetrics <- grid_metrics(norm_las, .stdmetrics, res = 1.0)
+  
+  saveRDS(chm_stdmetrics, paste0(envrmt$path_predictors, "/stdmetrics.RDS"))
+
+} else {
+  
+  chm_stdmetrics <- readRDS(paste0(envrmt$path_predictors, "/stdmetrics.RDS"))
+
+}
+
 plot(chm_stdmetrics, col = height.colors(20))
 ```
 
@@ -155,8 +176,20 @@ first_return_metrics <- function(x) {
        sd(x))
 }
 
-return_mean_max_sd <- grid_metrics(norm_las, func = ~first_return_metrics(Z),
+
+if (!file.exists(paste0(envrmt$path_predictors, "/first_returns.RDS"))) {
+
+  return_mean_max_sd <- grid_metrics(norm_las, func = ~first_return_metrics(Z),
                                    res = 1.0, filter = ~ReturnNumber == 1L)
+  
+  saveRDS(return_mean_max_sd, paste0(envrmt$path_predictors, "/first_returns.RDS"))
+
+} else {
+  
+  return_mean_max_sd <- readRDS(paste0(envrmt$path_predictors, "/first_returns.RDS"))
+
+}
+
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=12, fig.height=7}
@@ -194,9 +227,22 @@ par(par_org)
 #### Point and pulse density
 
 ```{r}
-point_density <- grid_metrics(norm_las, ~length(Z)/1, res = 1.0)
-pulse_density <- grid_metrics(norm_las, ~length(Z)/1, res = 1.0,
-                              filter = ~ReturnNumber == 1L)
+if (!file.exists(paste0(envrmt$path_predictors, "/point_density.RDS"))) {
+
+  point_density <- grid_metrics(norm_las, ~length(Z)/1, res = 1.0)
+  pulse_density <- grid_metrics(norm_las, ~length(Z)/1, res = 1.0,
+                                filter = ~ReturnNumber == 1L)
+  
+  saveRDS(point_density, paste0(envrmt$path_predictors, "/point_density.RDS"))
+  saveRDS(pulse_density, paste0(envrmt$path_predictors, "/pulse_density.RDS"))
+
+} else {
+  
+  point_density <- readRDS(paste0(envrmt$path_predictors, "/point_density.RDS"))
+  pulse_density <- readRDS(paste0(envrmt$path_predictors, "/pulse_density.RDS"))
+
+}
+
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=7}
@@ -226,29 +272,44 @@ par(par_org)
 ```{r}
 # Calculate Leaf area index with the "canopyLazR" package. Installation can be found on the following github page: https://github.com/akamoske/canopyLazR
 # Convert .laz or .las file into a voxelized lidar array
-laz.data <- laz.to.array(laz.file.path = file.path(envrmt$path_raw,"las_mof.las"), 
-                         voxel.resolution = 10, 
-                         z.resolution = 1,
-                         use.classified.returns = TRUE)
+library(canopyLazR)
 
-# Level the voxelized array to mimic a canopy height model
-level.canopy <- canopy.height.levelr(lidar.array = laz.data)
+if (!file.exists(paste0(envrmt$path_predictors, "/lai.RDS"))) {
 
-# Estimate Leaf Area Density (LAD) for each voxel in leveled array
-lad.estimates <- machorn.lad(leveld.lidar.array = level.canopy, 
-                             voxel.height = 1, 
-                             beer.lambert.constant = NULL)
+  laz_data <- laz.to.array(laz.file.path = file.path(envrmt$path_raw,"las_mof.las"), 
+                          voxel.resolution = 1, 
+                          z.resolution = 1,
+                          use.classified.returns = TRUE)
 
-# Convert the LAD array into a single raster stack
-lad.raster <- lad.array.to.raster.stack(lad.array = lad.estimates, 
-                                        laz.array = laz.data, 
-                                        epsg.code = 25832) # The epsg code maybe needs to be changed. 
+  # Level the voxelized array to mimic a canopy height model
+  level_canopy <- canopy.height.levelr(lidar.array = laz_data)
+
+  # Estimate Leaf Area Density (LAD) for each voxel in leveled array
+  lad_estimates <- machorn.lad(leveld.lidar.array = level_canopy, 
+                              voxel.height = 1, 
+                              beer.lambert.constant = NULL)
+
+  # Convert the LAD array into a single raster stack
+  lad_raster <- lad.array.to.raster.stack(lad.array = lad_estimates, 
+                                          laz.array = laz_data, 
+                                          epsg.code = 25832) # The epsg code maybe needs to be changed. 
 
 
-# Create a single LAI raster from the LAD raster stack
-lai.raster <- raster::calc(lad.raster, fun = sum, na.rm = TRUE)
+  # Create a single LAI raster from the LAD raster stack
+  lai_raster <- raster::calc(lad_raster, fun = sum, na.rm = TRUE)
 
-plot(lai.raster)
+
+  
+  saveRDS(lai_raster, paste0(envrmt$path_predictors, "/lai.RDS"))
+
+} else {
+  
+  lai_raster <- readRDS(paste0(envrmt$path_predictors, "/lai.RDS"))
+
+}
+
+
+plot(lai_raster)
 ```
 
 
@@ -256,7 +317,18 @@ plot(lai.raster)
 
 ```{r, warning=FALSE}
 # Calculate DTM using invert distance weighting
-dtm <- grid_terrain(las, res = 1.0, algorithm = knnidw(k = 6L, p = 2))
+if (!file.exists(paste0(envrmt$path_predictors, "/dtm.RDS"))) {
+
+  dtm <- grid_terrain(las, res = 1.0, algorithm = knnidw(k = 6L, p = 2))
+  
+  saveRDS(dtm, paste0(envrmt$path_predictors, "/dtm.RDS"))
+
+} else {
+  
+  dtm <- readRDS(paste0(envrmt$path_predictors, "/dtm.RDS"))
+
+}
+
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=5}
@@ -277,9 +349,23 @@ par(par_org)
 #### Slope, exposition and TPI
 
 ```{r}
-slope <- raster::terrain(dtm, opt = "slope", unit = "degrees", neighbors = 8)
-exposition <- raster::terrain(dtm, opt = "aspect", unit = "degrees", neighbors = 8)
-tpi <- raster::terrain(dtm, opt = "tpi")
+if (!file.exists(paste0(envrmt$path_predictors, "/slope.RDS"))) {
+
+  slope <- raster::terrain(dtm, opt = "slope", unit = "degrees", neighbors = 8)
+  exposition <- raster::terrain(dtm, opt = "aspect", unit = "degrees", neighbors = 8)
+  tpi <- raster::terrain(dtm, opt = "tpi")
+  
+  saveRDS(slope, paste0(envrmt$path_predictors, "/slope.RDS"))
+  saveRDS(exposition, paste0(envrmt$path_predictors, "/exposition.RDS"))
+  saveRDS(tpi, paste0(envrmt$path_predictors, "/tpi.RDS"))
+
+} else {
+  
+  slope <- readRDS(paste0(envrmt$path_predictors, "/slope.RDS"))
+  exposition <- readRDS(paste0(envrmt$path_predictors, "/exposition.RDS"))
+  tpi <- readRDS(paste0(envrmt$path_predictors, "/tpi.RDS"))
+
+}
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=7}
