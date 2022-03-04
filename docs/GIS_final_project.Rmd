@@ -406,7 +406,7 @@ par(par_org)
 if (!file.exists(paste0(envrmt$path_predictors, "/predictor_stack.RDS"))) {
   
   predictors <- raster::stack(chm, chm_stdmetrics, return_mean_max_sd,
-                              point_density, pulse_density, #lai_raster,
+                              point_density, pulse_density, lai_raster,
                               dtm, slope, exposition, tpi)
   
   # Rename layer names --> only where it's necessary
@@ -416,8 +416,8 @@ if (!file.exists(paste0(envrmt$path_predictors, "/predictor_stack.RDS"))) {
   predictors@layers[[60]]@data@names <- "return_sd"
   predictors@layers[[61]]@data@names <- "point_density"
   predictors@layers[[62]]@data@names <- "pulse_density"
-  #predictors@layers[[63]]@data@names <- "lai"
-  predictors@layers[[63]]@data@names <- "dtm" # --> has to be changed back to 64 if LAI is included
+  predictors@layers[[63]]@data@names <- "lai"
+  predictors@layers[[64]]@data@names <- "dtm" # --> has to be changed back to 64 if LAI is included
   
   saveRDS(predictors, file.path(envrmt$path_predictors, "/predictor_stack.RDS"))
   
@@ -444,10 +444,10 @@ if (!file.exists(paste0(envrmt$path_processed, "/df_predictors_response.RDS"))) 
   trees_climate_merged <- trees_climate_merged[order(trees_climate_merged$date),]
 
   # Create one final DataFrame with the predictor values for each station
-  df_final <- data.frame(matrix(ncol = 66, nrow =  nrow(trees_climate_merged))) # change ncol to 67 if LAI is included
+  df_final <- data.frame(matrix(ncol = 67, nrow =  nrow(trees_climate_merged))) # change ncol to 67 if LAI is included
   colnames(df_final) <- names(predictors)
 
-  for (i in 1:66) { # change to 67 if LAI is included
+  for (i in 1:67) { # change to 67 if LAI is included
   
     df_final[i] <- raster::extract(predictors[[i]], sf::st_as_sf(trees_climate_merged))
     
@@ -456,7 +456,8 @@ if (!file.exists(paste0(envrmt$path_processed, "/df_predictors_response.RDS"))) 
   # Add temperature and the tree_id
   df_final$temp <- trees_climate_merged$temp
   df_final$tree_id <- trees_climate_merged$tree_id
-
+  df_final$date <- trees_climate_merged$date
+  
   # Save as RDS
   saveRDS(df_final, file.path(envrmt$path_processed, "/df_predictors_response.RDS"))
   
