@@ -472,6 +472,79 @@ table(df_final$tree_id)
 ```
 
 
+### Cleaning the data
+
+```{r}
+if (!file.exists(paste0(envrmt$path_model_training_data, "/df_clean.RDS"))) {
+  # Removing NA's
+  df_final_na <- df_final[rowSums(is.na(df_final[ , 1:68])) == 0, ]
+
+  # Balancing the data so that from every station the same amount of data is used 
+  downTrainDF <- downSample(x = df_final_na[, -69],y = as.factor(df_final_na$tree_id),yname = "tree_id")
+
+  traintmp = downTrainDF
+  # filter zero or near-zero values
+  nzv = nearZeroVar(traintmp)
+  if (length(nzv) > 0) traintmp = traintmp[, -nzv]
+  
+  # Removing rows with "inf" value
+  traintmp <- traintmp[!is.infinite(rowSums(traintmp[,1:67])),]
+  
+  # Remove temporary the non-predictor columns. 
+  traintmp_rmv = traintmp[ , !(names(traintmp) %in% c("temp","date","tree_id"))]
+  tDF = traintmp
+  
+  # filter correlations that are > cor_cutoff
+  filt = findCorrelation(cor(traintmp_rmv, use = "complete"), cutoff = 0.9)
+  traintmp_rmv = traintmp_rmv[,-filt]
+  # re-add the necessary variables for model training
+  traintmp_rmv$temp = tDF$temp
+  traintmp_rmv$tree_id = tDF$tree_id
+  traintmp_rmv$date = tDF$date
+  # remove rows with NA
+  traintmp_rmv = traintmp_rmv[complete.cases(traintmp_rmv) ,]
+
+  # check manually if there are still NA values around
+  summary(traintmp_rmv)
+  sapply(traintmp_rmv, function(y) sum(length(which(is.na(y)))))
+  
+  df_final <- traintmp_rmv
+
+  saveRDS(df_final,paste0(envrmt$path_model_training_data,"/df_clean.RDS"))
+
+} else {
+  
+  df_final <- readRDS(paste0(envrmt$path_model_training_data, "/df_clean.RDS"))
+  
+}
+
+```
+
+
+### Split dataset into train and test data
+
+```{r}
+if (!file.exists(file.path(envrmt$path_model_training_data, "df_train.RDS"))) {
+  
+  # Set seed
+  set.seed(11)
+  
+  # Split data into 80% for training and 20% for testing
+  train_index <- caret::createDataPartition(df_final$temp, p = 0.8, list = FALSE)
+  training <- df_final[train_index,]
+  testing <- df_final[-train_index,]
+  saveRDS(training, file.path(envrmt$path_model_training_data, "df_train.RDS"))
+  saveRDS(testing, file.path(envrmt$path_model_training_data, "df_test.RDS"))
+  
+} else {
+  
+  training <- readRDS(file.path(envrmt$path_model_training_data, "df_train.RDS"))
+  testing <- readRDS(file.path(envrmt$path_model_training_data, "df_test.RDS"))
+}
+```
+
+
+
 
 
 
