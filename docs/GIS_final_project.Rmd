@@ -189,7 +189,6 @@ if (!file.exists(paste0(envrmt$path_predictors, "/first_returns.RDS"))) {
   return_mean_max_sd <- readRDS(paste0(envrmt$path_predictors, "/first_returns.RDS"))
 
 }
-
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=12, fig.height=7}
@@ -242,7 +241,6 @@ if (!file.exists(paste0(envrmt$path_predictors, "/point_density.RDS"))) {
   pulse_density <- readRDS(paste0(envrmt$path_predictors, "/pulse_density.RDS"))
 
 }
-
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=7}
@@ -312,7 +310,6 @@ if (!file.exists(paste0(envrmt$path_predictors, "/lai.RDS"))) {
 plot(lai_raster)
 ```
 
-
 #### Elevation
 
 ```{r, warning=FALSE}
@@ -328,7 +325,6 @@ if (!file.exists(paste0(envrmt$path_predictors, "/dtm.RDS"))) {
   dtm <- readRDS(paste0(envrmt$path_predictors, "/dtm.RDS"))
 
 }
-
 ```
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=5}
@@ -398,6 +394,84 @@ par(par_org)
 ```
 
 #### Irradiance
+
+```{r}
+### NOT WORKING YET!
+```
+
+### Create final predictor stack with temperature (from the climate station data) as response variable
+
+```{r}
+# Create a raster stack of all predictors
+if (!file.exists(paste0(envrmt$path_predictors, "/predictor_stack.RDS"))) {
+  
+  predictors <- raster::stack(chm, chm_stdmetrics, return_mean_max_sd,
+                              point_density, pulse_density, #lai_raster,
+                              dtm, slope, exposition, tpi)
+  
+  # Rename layer names --> only where it's necessary
+  predictors@layers[[1]]@data@names <- "chm"
+  predictors@layers[[58]]@data@names <- "return_mean"
+  predictors@layers[[59]]@data@names <- "return_max"
+  predictors@layers[[60]]@data@names <- "return_sd"
+  predictors@layers[[61]]@data@names <- "point_density"
+  predictors@layers[[62]]@data@names <- "pulse_density"
+  #predictors@layers[[63]]@data@names <- "lai"
+  predictors@layers[[63]]@data@names <- "dtm" # --> has to be changed back to 64 if LAI is included
+  
+  saveRDS(predictors, file.path(envrmt$path_predictors, "/predictor_stack.RDS"))
+  
+} else {
+  
+  predictors <- readRDS(paste0(envrmt$path_predictors, "/predictor_stack.RDS"))
+  
+}
+
+if (!file.exists(paste0(envrmt$path_processed, "/df_predictors_response.RDS"))) {
+
+  # Read climate data and select timespan (June, July, August)
+  climate_data <- readRDS(paste0(envrmt$path_raw, "/climate_stations_combined.RDS"))
+  climate_data <- climate_data[order(climate_data$date),]
+  climate_data <- climate_data %>% 
+    filter(date >= "2020-06-01 00:00:00" & date <= "2020-08-31 23:00:00") 
+
+  # Read shapefile core study trees
+  trees <- sf::read_sf(paste0(envrmt$path_raw, "/core_study_trees.shp"))
+
+  # Merge climate data and trees based on the tree_id
+  climate_data <- climate_data %>% rename(tree_id = cst_id)
+  trees_climate_merged <- merge(climate_data, trees, by = "tree_id")
+  trees_climate_merged <- trees_climate_merged[order(trees_climate_merged$date),]
+
+  # Create one final DataFrame with the predictor values for each station
+  df_final <- data.frame(matrix(ncol = 66, nrow =  nrow(trees_climate_merged))) # change ncol to 67 if LAI is included
+  colnames(df_final) <- names(predictors)
+
+  for (i in 1:66) { # change to 67 if LAI is included
+  
+    df_final[i] <- raster::extract(predictors[[i]], sf::st_as_sf(trees_climate_merged))
+    
+    }
+  
+  # Add temperature and the tree_id
+  df_final$temp <- trees_climate_merged$temp
+  df_final$tree_id <- trees_climate_merged$tree_id
+
+  # Save as RDS
+  saveRDS(df_final, file.path(envrmt$path_processed, "/df_predictors_response.RDS"))
+  
+} else {
+  
+  df_final <- readRDS(paste0(envrmt$path_processed, "/df_predictors_response.RDS"))
+  
+}
+
+# Show amount of data for each station
+table(df_final$tree_id)
+```
+
+
+
 
 
 

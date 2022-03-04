@@ -1,0 +1,13 @@
+# Raw data
+data/raw/las_mof.las
+data/raw/las_mof.lax
+data/raw/climate_stations_combined.RDS
+data/raw/core_study_trees.cpg
+data/raw/core_study_trees.dbf
+data/raw/core_study_trees.prj
+data/raw/core_study_trees.shp
+data/raw/core_study_trees.shx
+
+# Processed data
+data/predictors/stdmetrics.RDS
+data/predictors/predictor_stack.RDS
