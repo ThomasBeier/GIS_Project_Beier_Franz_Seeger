@@ -471,16 +471,23 @@ if (!file.exists(paste0(envrmt$path_processed, "/df_predictors_response.RDS"))) 
 table(df_final$tree_id)
 ```
 
+```{r}
+# Klimastation hinzufuegen
+clim_stat <- readRDS(paste0(envrmt$path_raw, "/klimastation_wiese_hourly.RDS"))
+clim_stat <- clim_stat[,-c(14,24)]
+df_final_merged <- merge(df_final, clim_stat, by.x = "date", by.y = "date_time_hourly")
+```
+
 
 ### Cleaning the data
 
 ```{r}
-if (!file.exists(paste0(envrmt$path_model_training_data, "/df_clean.RDS"))) {
+if (!file.exists(paste0(envrmt$path_model_training_data, "/df_clean_with_station.RDS"))) {
   # Removing NA's
-  df_final_na <- df_final[rowSums(is.na(df_final[ , 1:68])) == 0, ]
+  df_final_na <- df_final_merged[rowSums(is.na(df_final_merged[ , c(2:68,71:98)])) == 0, ]
 
   # Balancing the data so that from every station the same amount of data is used 
-  downTrainDF <- downSample(x = df_final_na[, -69],y = as.factor(df_final_na$tree_id),yname = "tree_id")
+  downTrainDF <- downSample(x = df_final_na[, -70],y = as.factor(df_final_na$tree_id),yname = "tree_id")
 
   traintmp = downTrainDF
   # filter zero or near-zero values
@@ -488,7 +495,7 @@ if (!file.exists(paste0(envrmt$path_model_training_data, "/df_clean.RDS"))) {
   if (length(nzv) > 0) traintmp = traintmp[, -nzv]
   
   # Removing rows with "inf" value
-  traintmp <- traintmp[!is.infinite(rowSums(traintmp[,1:67])),]
+  traintmp <- traintmp[!is.infinite(rowSums(traintmp[,c(2:67,69:92)])),]
   
   # Remove temporary the non-predictor columns. 
   traintmp_rmv = traintmp[ , !(names(traintmp) %in% c("temp","date","tree_id"))]
@@ -510,21 +517,19 @@ if (!file.exists(paste0(envrmt$path_model_training_data, "/df_clean.RDS"))) {
   
   df_final <- traintmp_rmv
 
-  saveRDS(df_final,paste0(envrmt$path_model_training_data,"/df_clean.RDS"))
+  saveRDS(df_final,paste0(envrmt$path_model_training_data,"/df_clean_with_station.RDS"))
 
 } else {
   
-  df_final <- readRDS(paste0(envrmt$path_model_training_data, "/df_clean.RDS"))
-  
+  df_final <- readRDS(paste0(envrmt$path_model_training_data, "/df_clean_with_station.RDS"))
 }
-
 ```
 
 
 ### Split dataset into train and test data
 
 ```{r}
-if (!file.exists(file.path(envrmt$path_model_training_data, "df_train.RDS"))) {
+if (!file.exists(file.path(envrmt$path_model_training_data, "df_train_with_station.RDS"))) {
   
   # Set seed
   set.seed(11)
@@ -533,27 +538,133 @@ if (!file.exists(file.path(envrmt$path_model_training_data, "df_train.RDS"))) {
   train_index <- caret::createDataPartition(df_final$temp, p = 0.8, list = FALSE)
   training <- df_final[train_index,]
   testing <- df_final[-train_index,]
-  saveRDS(training, file.path(envrmt$path_model_training_data, "df_train.RDS"))
-  saveRDS(testing, file.path(envrmt$path_model_training_data, "df_test.RDS"))
+  saveRDS(training, file.path(envrmt$path_model_training_data, "df_train_with_station.RDS"))
+  saveRDS(testing, file.path(envrmt$path_model_training_data, "df_test_with_station.RDS"))
   
 } else {
   
-  training <- readRDS(file.path(envrmt$path_model_training_data, "df_train.RDS"))
-  testing <- readRDS(file.path(envrmt$path_model_training_data, "df_test.RDS"))
+  training <- readRDS(file.path(envrmt$path_model_training_data, "df_train_with_station.RDS"))
+  testing <- readRDS(file.path(envrmt$path_model_training_data, "df_test_with_station.RDS"))
 }
 ```
 
+```{r}
+# Splitting the dataset from Reudenbach. 
+df_final_reudenbach <- readRDS(file.path(envrmt$path_processed, "trainDFmcClean.RDS"))
 
 
+# Set seed
+set.seed(11)
+  
+# Split data into 80% for training and 20% for testing
+train_index <- caret::createDataPartition(df_final_reudenbach$temp, p = 0.8, list = FALSE)
+training <- df_final_reudenbach[train_index,]
+testing <- df_final_reudenbach[-train_index,]
+```
 
 
+### Create a random forest model using a Leave-Location-Out Cross-Validation (LLOCV) and Forward-Feature-Selection (FFS)
+
+```{r}
+# Create parallel cluster to increase computing speed
+# detectCores() --> uncomment to detect number of cores on your PC
+n_cores <- detectCores() - 2 # leave out two cores (can be changed)
+cl <- makeCluster(n_cores)
+registerDoParallel(cl)
+
+# Model processing
+
+# Define predictors and response variable
+# The predictors column probably has to be changed. 
+predictors <- training[,1:46]#46 #35 # c(4:38,43,45:46)
+#training$Class <- as.factor(training$Class)
+response <- training[,"temp"]
+
+# Define parameters for the LLOCV. 
+llocv <- CreateSpacetimeFolds(training, spacevar = "tree_id",
+                              k = 10, class = "temp")
+
+# Control the parameters for later training
+# --> the folds of the LLOCV are passed as an index
+set.seed(11)
+ctrl <- trainControl(method = "cv", index = llocv$index,
+                     savePredictions = TRUE, allowParallel = TRUE)
+
+# Control the parameters for model tuning
+# Tuneable parameter for random forests in the package 'ranger':
+# mtry = Number of variables to possibly split at in each node
+# splitrule = Splitting rule. For classification "gini", "extratrees" or "hellinger"
+# min.node.size = Minimal node size
+# https://www.rdocumentation.org/packages/ranger/versions/0.13.1/topics/ranger
+# http://topepo.github.io/caret/available-models.html
+tgrid <- expand.grid(
+  mtry = c(1:10),
+  splitrule = "extratrees",
+  min.node.size = c(5,10,15)
+)
+# Noted from previous model runs that low "min.node.size" and high "mtry" values worked best. 
+
+# Run model with FFS using the package 'ranger'
+# We should discuss about the arguments passed to this function!!!
+if (!file.exists(file.path(envrmt$path_models, "model_with_lidar_predictors_only.RDS"))) {
+  
+  set.seed(11)
+  
+  model <- train(predictors,
+        response,
+        method = "ranger",
+        metric = "RMSE",
+        num.trees = 100,
+        tuneGrid = tgrid,
+        trControl = ctrl,
+        importance = 'permutation')
+  
+  # A ffs is also possible to run but loading times are very long. Because around 2000 models needs to be calculated. 
+  
+  saveRDS(model, file.path(envrmt$path_models, "model_with_lidar_predictors_only.RDS"))
+  
+} else {
+  
+  model <- readRDS(file.path(envrmt$path_models, "model_with_lidar_predictors_only.RDS"))
+  
+}
+
+# Stop parallel cluster
+stopCluster(cl)
+```
 
 
+```{r}
+# Feature importance 
+varImp(model)
+```
 
 
+```{r}
+# Prediction
+predicted = stats::predict(object = model, newdata = testing)
 
+val_df = data.frame(ID = dplyr::pull(testing, "tree_id"),#tree_id # doy_hour_id
+                    Observed = dplyr::pull(testing, "temp"),
+                    Predicted = predicted)
 
+# Calculating residum
+val_df$resi <- val_df$Observed - val_df$Predicted
+# Adding station id. Does not need to be added if it was added before. 
+#val_df$cst_id <- testing$cst_id
 
+hist(val_df$resi)
+
+# Taking a look which stations are predicted poorly. Same could be done for hours. 
+sort(abs(tapply(val_df$resi,val_df$ID,mean)))
+
+# Next three lines need to be executed together otherwise an error occurs.  
+plot(val_df$Predicted,val_df$Observed,xlim = c(5,40),ylim = c(5,40))
+abline(lm(val_df$Observed~val_df$Predicted),col ="red")
+abline(coef = c(0,1),col ="blue")
+
+summary(lm(val_df$Observed~val_df$Predicted))
+```
 
 
 
