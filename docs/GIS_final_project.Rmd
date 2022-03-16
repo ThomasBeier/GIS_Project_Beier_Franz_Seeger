@@ -272,7 +272,7 @@ par(par_org)
 # Convert .laz or .las file into a voxelized lidar array
 library(canopyLazR)
 
-if (!file.exists(paste0(envrmt$path_predictors, "/lai.RDS"))) {
+if (!file.exists(paste0(envrmt$path_predictors, "/lai.tif"))) {
 
   laz_data <- laz.to.array(laz.file.path = file.path(envrmt$path_raw,"las_mof.las"), 
                           voxel.resolution = 1, 
@@ -298,14 +298,13 @@ if (!file.exists(paste0(envrmt$path_predictors, "/lai.RDS"))) {
 
 
   
-  saveRDS(lai_raster, paste0(envrmt$path_predictors, "/lai.RDS"))
+  saveRDS(lai_raster, paste0(envrmt$path_predictors, "/lai.tif"))
 
 } else {
   
-  lai_raster <- readRDS(paste0(envrmt$path_predictors, "/lai.RDS"))
+  lai_raster <- readRDS(paste0(envrmt$path_predictors, "/lai.tif"))
 
 }
-
 
 plot(lai_raster)
 ```
@@ -576,7 +575,7 @@ registerDoParallel(cl)
 
 # Define predictors and response variable
 # The predictors column probably has to be changed. 
-predictors <- training[,1:46]#46 #35 # c(4:38,43,45:46)
+predictors <- training[,c(1:35)]#46 #35 # c(4:38,43,45:46)
 #training$Class <- as.factor(training$Class)
 response <- training[,"temp"]
 
@@ -606,7 +605,7 @@ tgrid <- expand.grid(
 
 # Run model with FFS using the package 'ranger'
 # We should discuss about the arguments passed to this function!!!
-if (!file.exists(file.path(envrmt$path_models, "model_with_lidar_predictors_only.RDS"))) {
+if (!file.exists(file.path(envrmt$path_models, "model_with_lidar_predictors_and_wiese.RDS"))) {
   
   set.seed(11)
   
@@ -621,11 +620,11 @@ if (!file.exists(file.path(envrmt$path_models, "model_with_lidar_predictors_only
   
   # A ffs is also possible to run but loading times are very long. Because around 2000 models needs to be calculated. 
   
-  saveRDS(model, file.path(envrmt$path_models, "model_with_lidar_predictors_only.RDS"))
+  saveRDS(model, file.path(envrmt$path_models, "model_with_lidar_predictors_and_wiese.RDS"))
   
 } else {
   
-  model <- readRDS(file.path(envrmt$path_models, "model_with_lidar_predictors_only.RDS"))
+  model <- readRDS(file.path(envrmt$path_models, "model_with_lidar_predictors_and_wiese.RDS"))
   
 }
 
@@ -653,15 +652,18 @@ val_df$resi <- val_df$Observed - val_df$Predicted
 # Adding station id. Does not need to be added if it was added before. 
 #val_df$cst_id <- testing$cst_id
 
-hist(val_df$resi)
+hist(val_df$resi,main = "Residuen observed - predicted",breaks = 40)
 
 # Taking a look which stations are predicted poorly. Same could be done for hours. 
 sort(abs(tapply(val_df$resi,val_df$ID,mean)))
 
 # Next three lines need to be executed together otherwise an error occurs.  
-plot(val_df$Predicted,val_df$Observed,xlim = c(5,40),ylim = c(5,40))
+plot(val_df$Predicted,val_df$Observed,xlim = c(5,40),ylim = c(5,40),xlab = "Predicted °C",ylab = "Observed °C")
 abline(lm(val_df$Observed~val_df$Predicted),col ="red")
 abline(coef = c(0,1),col ="blue")
+
+# RMSE
+round(sqrt(mean((val_df$Predicted - val_df$Observed)^2, na.rm = TRUE)), 2)
 
 summary(lm(val_df$Observed~val_df$Predicted))
 ```
