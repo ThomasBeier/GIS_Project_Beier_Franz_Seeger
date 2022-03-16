@@ -302,7 +302,7 @@ if (!file.exists(paste0(envrmt$path_predictors, "/lai.tif"))) {
 
 } else {
   
-  lai_raster <- readRDS(paste0(envrmt$path_predictors, "/lai.tif"))
+  lai_raster <- raster(paste0(envrmt$path_predictors, "/lai.tif"))
 
 }
 
