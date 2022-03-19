@@ -738,6 +738,33 @@ df_full_results <- rbind(df_full_results, result)# "results" is the output of th
 
 # Save the updated results
 saveRDS(df_full_results, paste0(envrmt$path_prediction, "/model_results.RDS"))
+
+result <- model_results(training,testing,2,12,c(6,81,45),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,2,75,c(46,87,38),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,2,97,c(53,3,76),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,2,8,c(29,85,5),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,2,531,c(12,21,82),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,2,35,c(91,25,55),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+saveRDS(df_full_results, paste0(envrmt$path_prediction, "/model_results.RDS"))
+
 ```
 
 
