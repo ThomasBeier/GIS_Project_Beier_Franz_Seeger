@@ -716,7 +716,7 @@ model_results <- function(training_data,testing_data,nr_stations_out,first_seed,
 
 ```{r}
 # Testing the function.
-result <- model_results(training,testing,2,42,c(29,18,98),3,2)
+result <- model_results(training,testing,2,98,c(64,13,649),3,2)
 
 # This result will be saved in the "prediction" folder as "model_results.RDS" and each new model run can be added to this dataframe. 
 
@@ -732,12 +732,12 @@ if (!file.exists(paste0(envrmt$path_prediction, "/model_results.RDS"))) {
 # Now the dataframe where all the results are stored is loaded and by calling the "model_results" function and afterwards using the "rbind" function as demonstrated below you can just add all the results into one dataframe. But don't forget to save the dataframe after each different function run. 
 
 # Using the "model_results" function
-result <- model_results(training,testing,2,98,c(64,13,649),3,2)
+result <- model_results(training,testing,2,42,c(29,18,98),3,2)
 # Add the new results to the exisiting dataframe.  
 df_full_results <- rbind(df_full_results, result)# "results" is the output of the "model_results" function and "df_full_results" the loaded result dataframe. 
 
 # Save the updated results
-saveRDS(result, paste0(envrmt$path_prediction, "/model_results.RDS"))
+saveRDS(df_full_results, paste0(envrmt$path_prediction, "/model_results.RDS"))
 ```
 
 
