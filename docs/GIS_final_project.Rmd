@@ -549,124 +549,204 @@ if (!file.exists(file.path(envrmt$path_model_training_data, "df_train_with_stati
 
 ```{r}
 # Splitting the dataset from Reudenbach. 
-df_final_reudenbach <- readRDS(file.path(envrmt$path_processed, "trainDFmcClean.RDS"))
+#df_final_reudenbach <- readRDS(file.path(envrmt$path_processed, "trainDFmcClean.RDS"))
 
 
 # Set seed
-set.seed(11)
+#set.seed(11)
   
 # Split data into 80% for training and 20% for testing
-train_index <- caret::createDataPartition(df_final_reudenbach$temp, p = 0.8, list = FALSE)
-training <- df_final_reudenbach[train_index,]
-testing <- df_final_reudenbach[-train_index,]
+#train_index <- caret::createDataPartition(df_final_reudenbach$temp, p = 0.8, list = FALSE)
+#training <- df_final_reudenbach[train_index,]
+#testing <- df_final_reudenbach[-train_index,]
 ```
 
 
 ### Create a random forest model using a Leave-Location-Out Cross-Validation (LLOCV) and Forward-Feature-Selection (FFS)
 
 ```{r}
-# Create parallel cluster to increase computing speed
-# detectCores() --> uncomment to detect number of cores on your PC
-n_cores <- detectCores() - 2 # leave out two cores (can be changed)
-cl <- makeCluster(n_cores)
-registerDoParallel(cl)
-
-# Model processing
-
-# Define predictors and response variable
-# The predictors column probably has to be changed. 
-predictors <- training[,c(1:35)]#46 #35 # c(4:38,43,45:46)
-#training$Class <- as.factor(training$Class)
-response <- training[,"temp"]
-
-# Define parameters for the LLOCV. 
-llocv <- CreateSpacetimeFolds(training, spacevar = "tree_id",
-                              k = 10, class = "temp")
-
-# Control the parameters for later training
-# --> the folds of the LLOCV are passed as an index
-set.seed(11)
-ctrl <- trainControl(method = "cv", index = llocv$index,
-                     savePredictions = TRUE, allowParallel = TRUE)
-
-# Control the parameters for model tuning
-# Tuneable parameter for random forests in the package 'ranger':
-# mtry = Number of variables to possibly split at in each node
-# splitrule = Splitting rule. For classification "gini", "extratrees" or "hellinger"
-# min.node.size = Minimal node size
-# https://www.rdocumentation.org/packages/ranger/versions/0.13.1/topics/ranger
-# http://topepo.github.io/caret/available-models.html
-tgrid <- expand.grid(
-  mtry = c(1:10),
-  splitrule = "extratrees",
-  min.node.size = c(5,10,15)
-)
-# Noted from previous model runs that low "min.node.size" and high "mtry" values worked best. 
-
-# Run model with FFS using the package 'ranger'
-# We should discuss about the arguments passed to this function!!!
-if (!file.exists(file.path(envrmt$path_models, "model_with_lidar_predictors_and_wiese.RDS"))) {
-  
-  set.seed(11)
-  
-  model <- train(predictors,
-        response,
-        method = "ranger",
-        metric = "RMSE",
-        num.trees = 100,
-        tuneGrid = tgrid,
-        trControl = ctrl,
-        importance = 'permutation')
-  
-  # A ffs is also possible to run but loading times are very long. Because around 2000 models needs to be calculated. 
-  
-  saveRDS(model, file.path(envrmt$path_models, "model_with_lidar_predictors_and_wiese.RDS"))
-  
-} else {
-  
-  model <- readRDS(file.path(envrmt$path_models, "model_with_lidar_predictors_and_wiese.RDS"))
-  
+# Function to calculate rmse with less code 
+rmse <- function(predicted,observed,round = 2){
+  return(round(sqrt(mean((predicted - observed)^2, na.rm = TRUE)), round))
 }
 
-# Stop parallel cluster
-stopCluster(cl)
-```
+# Function to remove stations, calculate a ranger model and calculate average rmse. More info in function description and return. 
+model_results <- function(training_data,testing_data,nr_stations_out,first_seed,second_seeds,validation_runs,rounding = 2){
+  #'@title model_results.
+  #'@description Function calculates a ML ranger model while a definite amount of stations are removed. 
+  #'@param training_data Training data for the ML model.  
+  #'@param testing_data Testing data for the ML model.  
+  #'@param nr_stations_out Number of stations that will randomly be removed. 
+  #'@param first_seed One seed that is used for randomly removing tree stations.    
+  #'@param second_seeds Needs to be the same number of seeds as "validation_runs". These seeds are used for different model runs. 
+  #'@param validation_runs Number of runs the model will be excecuted for the same removed stations. In our case this number should usually be 3. 
+  #'@param rounding Is standard "2". RMSE value results are rounded to this position after decimal point.
+  #'@return Function returns a dataframe that gives the average rmse value for number of validation runs. It returns the RMSE of all stations, the stations removed, the stations still in and also the RMSE of each station. It also provides the used seeds so that they are reproducible and the number of stations left out and which these stations are. 
 
+  # Selecting randomly tree stations
+  tree_id <- unique(as.character(training_data$tree_id))
+  set.seed(first_seed)
+  stations_remove <- sample(tree_id,nr_stations_out) 
+
+
+  # Removing the rows with the selected stations 
+  for (k in seq(length(stations_remove))){
+    training_data <- training_data[training_data$tree_id != stations_remove[k],]
+    training_data <- droplevels(training_data)
+  }
+
+  # Dataframe erstellen indem die einzelnen Ergebnisse bei verschiedenen seeds gespeichert werden. 
+  df_matrix <- matrix(ncol = 1, nrow = validation_runs)
+  df_results <- data.frame(df_matrix)
+
+  # Dann kann man eigentlich schon das Modell laufen lassen
+  predictors <- training_data[,c(1:46)]
+  
+  response <- training_data[,"temp"]
+
+  seeds = second_seeds
+
+  # Itterieren ueber die verschiedenen seeds 
+  for (x in 1:validation_runs){
+
+    # Define parameters for the LLOCV. 
+    llocv <- CreateSpacetimeFolds(training_data, spacevar = "tree_id",
+                                  k = 10, class = "temp")
+
+    # Control the parameters for later training
+    # --> the folds of the LLOCV are passed as an index
+    set.seed(seeds[x]) 
+    ctrl <- trainControl(method = "cv", index = llocv$index,
+                     savePredictions = TRUE, allowParallel = TRUE)
+
+    # Control the parameters for model tuning
+    # Tuneable parameter for random forests in the package 'ranger':
+    # mtry = Number of variables to possibly split at in each node
+    # splitrule = Splitting rule. For classification "gini", "extratrees" or "hellinger"
+    # min.node.size = Minimal node size
+    # https://www.rdocumentation.org/packages/ranger/versions/0.13.1/topics/ranger
+    # http://topepo.github.io/caret/available-models.html
+    tgrid <- expand.grid(
+      mtry = c(5:10),#5:10
+      splitrule = "extratrees",
+      min.node.size = c(5,10,15)
+    )
+    # Noted from previous model runs that low "min.node.size" and high "mtry" values worked best. 
+
+  
+    set.seed(seeds[x])
+  
+    model <- train(predictors,
+          response,
+          method = "ranger",
+          metric = "RMSE",
+          num.trees = 100,
+          tuneGrid = tgrid,
+          trControl = ctrl,
+          importance = 'permutation')
+
+
+    df_results$run[x] <- x 
+    df_results$first_seed[x] <- first_seed
+    df_results$second_seed[x] <- seeds[x]
+    
+    # Deleting unneeded column
+    if ("df_matrix" %in% colnames(df_results)){
+      df_results$df_matrix <- NULL
+    }
+
+    # Prediction / Validierung
+    predicted = stats::predict(object = model, newdata = testing_data)
+
+    val_df = data.frame(ID = dplyr::pull(testing_data, "tree_id"),
+                        Observed = dplyr::pull(testing_data, "temp"),
+                        Predicted = predicted)
+
+
+    df_results$amount_station_out[x] <- length(stations_remove)
+    df_results$left_out[x] <- list(substr(stations_remove, 12, 13))
+
+    df_results$rmse_gesamt[x] <- rmse(val_df$Predicted,val_df$Observed,rounding) 
+
+    # Stationen die entfernt wurden zu neuen dataframe geben
+    rmse_removed_stations <- val_df[val_df$ID %in% stations_remove, ] 
+    df_results$rmse_left_out[x] <- rmse(rmse_removed_stations$Predicted,rmse_removed_stations$Observed,rounding) 
+
+    # RMSE von Stationen die drinnen sind. 
+    rmse_stations_in <- val_df[!val_df$ID %in% stations_remove, ] 
+    df_results$rmse_station_in[x] <- rmse(rmse_stations_in$Predicted,rmse_stations_in$Observed,rounding)
+
+    df_rmse_stat <- data.frame(station = unique(val_df$ID))
+
+    for (n in 1:length(unique(val_df$ID))){
+      rmse_removed_stations_si <- val_df[val_df$ID %in% df_rmse_stat$station[n], ]
+      stationen_rmse <- rmse(rmse_removed_stations_si$Predicted,rmse_removed_stations_si$Observed)
+      df_rmse_stat$rmse[n] <- stationen_rmse
+    }
+
+    tabs_zsm <- xtabs(rmse~station, df_rmse_stat)
+
+    # Zu einem dataframe hinzufuegen
+    df_table <- as.data.frame.matrix(t(tabs_zsm))
+
+    # Verbinden mit dem dataframe zuvor
+
+    if (x == 1){
+      df_results <- cbind(df_results, df_table)
+    } else if (x > 1){
+      # Adding the rmse values of each station to dataframe
+      for (i in 1:18){
+        rmse_each_station <- df_table[[i]]
+        df_results[x,i+8] <- rmse_each_station
+      }
+    }
+
+  }
+
+  df_mean_results <- df_results[1,c(4:5)]
+  df_mean_results$first_seed <- df_results$first_seed[1]
+  df_mean_results$second_seeds <- list(df_results$second_seed)
+  df_mean_results[,5:25] <- sapply(df_results[,c(6:26)],FUN=mean)
+  names(df_mean_results)[5:25] <- names(df_results[c(6:26)])
+
+  return(df_mean_results)
+
+}
+```
 
 ```{r}
-# Feature importance 
-varImp(model)
+# Testing the function.
+result <- model_results(training,testing,2,42,c(29,18,98),3,2)
+
+# This result will be saved in the "prediction" folder as "model_results.RDS" and each new model run can be added to this dataframe. 
+
+if (!file.exists(paste0(envrmt$path_prediction, "/model_results.RDS"))) {
+  
+  saveRDS(result, paste0(envrmt$path_prediction, "/model_results.RDS"))
+
+} else {
+  
+  df_full_results <- readRDS(paste0(envrmt$path_prediction, "/model_results.RDS"))
+
+}
+# Now the dataframe where all the results are stored is loaded and by calling the "model_results" function and afterwards using the "rbind" function as demonstrated below you can just add all the results into one dataframe. But don't forget to save the dataframe after each different function run. 
+
+# Using the "model_results" function
+result <- model_results(training,testing,2,98,c(64,13,649),3,2)
+# Add the new results to the exisiting dataframe.  
+df_full_results <- rbind(df_full_results, result)# "results" is the output of the "model_results" function and "df_full_results" the loaded result dataframe. 
+
+# Save the updated results
+saveRDS(result, paste0(envrmt$path_prediction, "/model_results.RDS"))
 ```
 
 
-```{r}
-# Prediction
-predicted = stats::predict(object = model, newdata = testing)
 
-val_df = data.frame(ID = dplyr::pull(testing, "tree_id"),#tree_id # doy_hour_id
-                    Observed = dplyr::pull(testing, "temp"),
-                    Predicted = predicted)
 
-# Calculating residum
-val_df$resi <- val_df$Observed - val_df$Predicted
-# Adding station id. Does not need to be added if it was added before. 
-#val_df$cst_id <- testing$cst_id
 
-hist(val_df$resi,main = "Residuen observed - predicted",breaks = 40)
 
-# Taking a look which stations are predicted poorly. Same could be done for hours. 
-sort(abs(tapply(val_df$resi,val_df$ID,mean)))
 
-# Next three lines need to be executed together otherwise an error occurs.  
-plot(val_df$Predicted,val_df$Observed,xlim = c(5,40),ylim = c(5,40),xlab = "Predicted °C",ylab = "Observed °C")
-abline(lm(val_df$Observed~val_df$Predicted),col ="red")
-abline(coef = c(0,1),col ="blue")
 
-# RMSE
-round(sqrt(mean((val_df$Predicted - val_df$Observed)^2, na.rm = TRUE)), 2)
-
-summary(lm(val_df$Observed~val_df$Predicted))
-```
 
 
 
