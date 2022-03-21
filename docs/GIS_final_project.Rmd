@@ -477,6 +477,51 @@ clim_stat <- clim_stat[,-c(14,24)]
 df_final_merged <- merge(df_final, clim_stat, by.x = "date", by.y = "date_time_hourly")
 ```
 
+```{r}
+# Using the wiese station as independent validation station.
+
+if (!file.exists(paste0(envrmt$path_processed, "/df_predictors_wiese.RDS"))) {
+  # Assigning coordinates of wiese station
+  northing <- 5632136
+  easting <- 477694
+
+  # adding them to the df 
+  clim_stat2 <- st_sfc(st_point(cbind(easting, northing)),crs = epsg_number)
+
+  clim_stat$geometry <- clim_stat2
+
+  # Extract the predictors from predictor stack
+  df_predictors_wiese <- data.frame(matrix(ncol = 67, nrow =  nrow(clim_stat))) # change ncol to 67 if LAI is included
+  colnames(df_predictors_wiese) <- names(predictors)
+
+  # Extract the predictor values
+  for (i in 1:67) { # change to 67 if LAI is included
+  
+    df_predictors_wiese[i] <- raster::extract(predictors[[i]], sf::st_as_sf(clim_stat))
+    
+  }
+
+  df_predictors_wiese$date <- clim_stat$date_time_hourly
+
+  # add the predictors from the station
+  df_predictors_wiese_merged <- merge(df_predictors_wiese, clim_stat, by.x = "date", by.y = "date_time_hourly")
+
+  # Remove geometry column which is unneeded 
+  df_predictors_wiese_merged$geometry <- NULL
+
+  df_predictors_wiese_merged$zkurt <- 0
+  df_predictors_wiese_merged$zentropy <- 0
+
+  saveRDS(df_predictors_wiese_merged, file.path(envrmt$path_processed, "/df_predictors_wiese.RDS"))
+
+} else {
+
+  df_predictors_wiese_merged <- readRDS(paste0(envrmt$path_processed, "/df_predictors_wiese.RDS"))
+
+}
+```
+
+
 
 ### Cleaning the data
 
@@ -571,11 +616,12 @@ rmse <- function(predicted,observed,round = 2){
 }
 
 # Function to remove stations, calculate a ranger model and calculate average rmse. More info in function description and return. 
-model_results <- function(training_data,testing_data,nr_stations_out,first_seed,second_seeds,validation_runs,rounding = 2){
+model_results <- function(training_data,testing_data,wiese_validation,nr_stations_out,first_seed,second_seeds,validation_runs,rounding = 2){
   #'@title model_results.
   #'@description Function calculates a ML ranger model while a definite amount of stations are removed. 
   #'@param training_data Training data for the ML model.  
   #'@param testing_data Testing data for the ML model.  
+  #'@param wiese_validation Independent wiese station.
   #'@param nr_stations_out Number of stations that will randomly be removed. 
   #'@param first_seed One seed that is used for randomly removing tree stations.    
   #'@param second_seeds Needs to be the same number of seeds as "validation_runs". These seeds are used for different model runs. 
@@ -667,6 +713,15 @@ model_results <- function(training_data,testing_data,nr_stations_out,first_seed,
     df_results$left_out[x] <- list(substr(stations_remove, 12, 13))
 
     df_results$rmse_gesamt[x] <- rmse(val_df$Predicted,val_df$Observed,rounding) 
+    
+    predicted_wiese = stats::predict(object = model, newdata = wiese_validation)
+
+    val_df_wiese = data.frame(ID = dplyr::pull(wiese_validation, "date"),
+                      Observed = dplyr::pull(wiese_validation, "Ta_10m"),
+                      Predicted = predicted_wiese)
+    
+    df_results$rmse_wiese_station[x] <- rmse(val_df_wiese$Predicted,val_df_wiese$Observed,rounding) 
+    
 
     # Stationen die entfernt wurden zu neuen dataframe geben
     rmse_removed_stations <- val_df[val_df$ID %in% stations_remove, ] 
@@ -697,7 +752,7 @@ model_results <- function(training_data,testing_data,nr_stations_out,first_seed,
       # Adding the rmse values of each station to dataframe
       for (i in 1:18){
         rmse_each_station <- df_table[[i]]
-        df_results[x,i+8] <- rmse_each_station
+        df_results[x,i+9] <- rmse_each_station
       }
     }
 
@@ -706,8 +761,8 @@ model_results <- function(training_data,testing_data,nr_stations_out,first_seed,
   df_mean_results <- df_results[1,c(4:5)]
   df_mean_results$first_seed <- df_results$first_seed[1]
   df_mean_results$second_seeds <- list(df_results$second_seed)
-  df_mean_results[,5:25] <- sapply(df_results[,c(6:26)],FUN=mean)
-  names(df_mean_results)[5:25] <- names(df_results[c(6:26)])
+  df_mean_results[,5:26] <- sapply(df_results[,c(6:27)],FUN=mean)
+  names(df_mean_results)[5:26] <- names(df_results[c(6:27)])
 
   return(df_mean_results)
 
@@ -716,7 +771,7 @@ model_results <- function(training_data,testing_data,nr_stations_out,first_seed,
 
 ```{r}
 # Testing the function.
-result <- model_results(training,testing,2,98,c(64,13,649),3,2)
+result <- model_results(training,testing,df_predictors_wiese_merged,2,98,c(64,13,649),3,2)
 
 # This result will be saved in the "prediction" folder as "model_results.RDS" and each new model run can be added to this dataframe. 
 
@@ -732,34 +787,92 @@ if (!file.exists(paste0(envrmt$path_prediction, "/model_results.RDS"))) {
 # Now the dataframe where all the results are stored is loaded and by calling the "model_results" function and afterwards using the "rbind" function as demonstrated below you can just add all the results into one dataframe. But don't forget to save the dataframe after each different function run. 
 
 # Using the "model_results" function
-result <- model_results(training,testing,2,42,c(29,18,98),3,2)
+result <- model_results(training,testing,df_predictors_wiese_merged,2,42,c(29,18,98),3,2)
 # Add the new results to the exisiting dataframe.  
 df_full_results <- rbind(df_full_results, result)# "results" is the output of the "model_results" function and "df_full_results" the loaded result dataframe. 
 
 # Save the updated results
-saveRDS(df_full_results, paste0(envrmt$path_prediction, "/model_results.RDS"))
+#saveRDS(df_full_results, paste0(envrmt$path_prediction, "/model_results.RDS"))
 
-result <- model_results(training,testing,2,12,c(6,81,45),3,2)
-
-df_full_results <- rbind(df_full_results, result)
-
-result <- model_results(training,testing,2,75,c(46,87,38),3,2)
+result <- model_results(training,testing,df_predictors_wiese_merged,2,12,c(6,81,45),3,2)
 
 df_full_results <- rbind(df_full_results, result)
 
-result <- model_results(training,testing,2,97,c(53,3,76),3,2)
+result <- model_results(training,testing,df_predictors_wiese_merged,2,75,c(46,87,38),3,2)
 
 df_full_results <- rbind(df_full_results, result)
 
-result <- model_results(training,testing,2,8,c(29,85,5),3,2)
+result <- model_results(training,testing,df_predictors_wiese_merged,2,97,c(53,3,76),3,2)
 
 df_full_results <- rbind(df_full_results, result)
 
-result <- model_results(training,testing,2,531,c(12,21,82),3,2)
+result <- model_results(training,testing,df_predictors_wiese_merged,2,8,c(29,85,5),3,2)
 
 df_full_results <- rbind(df_full_results, result)
 
-result <- model_results(training,testing,2,35,c(91,25,55),3,2)
+result <- model_results(training,testing,df_predictors_wiese_merged,2,531,c(12,21,82),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,2,35,c(91,25,55),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,14,11,c(54,12,95),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+# 8 stations removed  
+result <- model_results(training,testing,df_predictors_wiese_merged,8,67,c(41,53,19),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,8,81,c(61,28,43),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,8,80,c(2,51,78),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,8,103,c(70,99,19),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,8,19,c(25,5,95),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,8,49,c(20,76,14),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,8,57,c(91,12,75),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,8,15,c(82,22,33),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+# 16 Stations removed
+result <- model_results(training,testing,df_predictors_wiese_merged,16,97,c(23,18,37),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,16,9,c(65,50,7),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,16,53,c(12,75,14),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,16,86,c(86,91,71),3,2)
+
+df_full_results <- rbind(df_full_results, result)
+
+result <- model_results(training,testing,df_predictors_wiese_merged,16,100,c(25,19,79),3,2)
 
 df_full_results <- rbind(df_full_results, result)
 
