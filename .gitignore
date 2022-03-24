@@ -11,3 +11,5 @@ data/raw/core_study_trees.shx
 # Processed data
 data/predictors/stdmetrics.RDS
 data/predictors/predictor_stack.RDS
+
+data/processed/predictor_stack_plus_wiese.RDS
