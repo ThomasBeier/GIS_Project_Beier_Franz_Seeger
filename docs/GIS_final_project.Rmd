@@ -541,7 +541,7 @@ if (!file.exists(paste0(envrmt$path_processed, "/df_predictors_wiese.RDS"))) {
 } else {
 
   df_predictors_wiese_merged <- readRDS(paste0(envrmt$path_processed, "/df_predictors_wiese.RDS"))
-
+  df_predictors_wiese_merged <- df_predictors_wiese_merged[1:1921,]
 }
 ```
 
@@ -828,14 +828,6 @@ result <- model_results(training,testing,df_predictors_wiese_merged,predictor_st
 df_full_results <- rbind(df_full_results, result)
 
 result <- model_results(training,testing,df_predictors_wiese_merged,predictor_stack,2,75,c(46,87,38),3,2)
-
-df_full_results <- rbind(df_full_results, result)
-
-result <- model_results(training,testing,df_predictors_wiese_merged,predictor_stack,2,97,c(53,3,76),3,2)
-
-df_full_results <- rbind(df_full_results, result)
-
-result <- model_results(training,testing,df_predictors_wiese_merged,predictor_stack,2,8,c(29,85,5),3,2)
 
 df_full_results <- rbind(df_full_results, result)
 
@@ -1265,6 +1257,33 @@ ggplot(df_full_results, aes(x = amount_station_out, y = rmse_wiese_station)) +
 dev.off()
 ```
 
+### Heatmap
+
+```{r}
+library(lattice)
+library(data.table)
+
+# Creating a new variable to not overwrite the "main" result table. 
+df_full_results2 <- df_full_results[,-c(2:8)]
+
+# Group by the "amount_station_out"
+df_results2_grouped <- df_full_results2 %>% 
+  group_by(amount_station_out) %>%
+  summarise(across(everything(), mean))
+
+# Create a "long" dataframe 
+df_results_grouped_long <- data.table::melt(df_results2_grouped, id.vars = c("amount_station_out"))
+
+png(file = file.path(envrmt$path_prediction, "heatmap_treetalker_rmse.png"), 
+      width =1124, height = 770, res = 80)
+
+# Create levelplot
+levelplot(value ~ amount_station_out*variable, data=df_results_grouped_long  ,xlab="Number of stations out",
+          ylab = "Different stations",
+          #main="Performance of the RMSE at different stations with increasing number of stations left out",
+          col.regions = terrain.colors(100))
+dev.off()
+```
 
 
 
