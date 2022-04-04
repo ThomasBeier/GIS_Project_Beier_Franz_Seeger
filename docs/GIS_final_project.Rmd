@@ -1229,30 +1229,40 @@ for (p in 1:17){
 ```
 
 ```{r}
-# Calculate mean RMSE per amount of stations left out
+# Calculate mean RMSE per amount of stations left out for the 'Wiese station'
 df_full_results_grouped <- group_by(df_full_results, amount_station_out)
 
 df_rmse_gesamt_mean <- summarize(df_full_results_grouped,
-                                 rmse_gesamt_mean = round(mean(rmse_gesamt), 2),
-                                 rmse_gesamt_sd = round(sd(rmse_gesamt), 2))
+                                 rmse_wiese_mean = round(mean(rmse_wiese_station), 2),
+                                 rmse_wiese_sd = round(sd(rmse_wiese_station), 2))
 
 # Different plotting
 # Barplot with errorbars
-ggplot(df_rmse_gesamt_mean, aes(x = amount_station_out, y = rmse_gesamt_mean)) +
-  geom_bar(stat = "identity", fill = "red", alpha = 0.7) + 
+png(file = file.path(envrmt$path_prediction, "rmse_wiese_mean_barplot.png"), 
+      width =600, height = 400, res = 80)
+
+ggplot(df_rmse_gesamt_mean, aes(x = amount_station_out, y = rmse_wiese_mean)) +
+  geom_bar(stat = "identity", fill = "black", alpha = 0.6) + 
   scale_x_continuous(breaks = 1:17) + 
   labs(x = "Number of stations left out", y = "Mean RMSE") + 
   geom_errorbar(aes(x = amount_station_out,
-                    ymin = rmse_gesamt_mean-rmse_gesamt_sd,
-                    ymax = rmse_gesamt_mean+rmse_gesamt_sd),
+                    ymin = rmse_wiese_mean-rmse_wiese_sd,
+                    ymax = rmse_wiese_mean+rmse_wiese_sd),
                 width = 0.5, size = 0.8)
+
+dev.off()
 
 # Boxplots
 df_full_results$amount_station_out <- as.factor(df_full_results$amount_station_out)
 
-ggplot(df_full_results, aes(x = amount_station_out, y = rmse_left_out)) +
+png(file = file.path(envrmt$path_prediction, "rmse_wiese_boxplot.png"), 
+      width =600, height = 400, res = 80)
+
+ggplot(df_full_results, aes(x = amount_station_out, y = rmse_wiese_station)) +
   geom_boxplot() +
   labs(x = "Number of stations left out", y = "RMSE")
+
+dev.off()
 ```
 
 
