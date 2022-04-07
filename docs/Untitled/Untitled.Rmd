@@ -1,0 +1,250 @@
+---
+title: Detection of non-vital trees attacked by bark beetles in the Harz mountains using a remote sensing-based classification approach
+author:
+  - name: Thomas Beier
+    email: example@students.uni-marburg.de
+    affiliation: Philipps-University Marburg
+  - name: Florian Franz
+    email: Franzf@students.uni-marburg.de
+    affiliation: Philipps-University Marburg
+  - name: Sophia Just
+    email: example@students.uni-marburg.de
+    affiliation: Philipps-University Marburg
+  - name: Konstantin Seeger
+    email: example@students.uni-marburg.de
+    affiliation: Philipps-University Marburg
+address:
+  - code: Philipps-University Marburg
+    address: Philipps-University Marburg, FB 19 Geography, Deutschhausstraße 10, 35032 Marburg, Germany
+bibliography: remote_sensing.bib
+layout: 5p
+keywords: test, test, test, test
+abstract: |
+  
+  Forests all over the world are facing major challenges due to climate change. In Germany, recent years’ high temperatures and drought have promoted outbreaks of the European bark beetle (Ips typographus), leading to considerable forest damage. An overview of past infestation areas can provide valuable information on future outbreak dynamics. We mapped and quantified the spatiotemporal development of bark beetle damages in a 2 km x 2 km research area in the Harz mountains, using a random forest (RF) based supervised classification on high-resolution digital orthophotos (DOP) from 2012 to 2020 in 2-year intervals. The goal of this study was to investigate the potential benefits of such DOPs to classify and quantify forest dieback due to bark beetle infestation. In accordance with reports of the HNP administration, a notable increase of damaged area from 2018 to 2020 was proven. The high spatial resolution of the DOPs (20 cm) enabled a precise detection of even small bark beetle spots, suggesting their potential for early detection. However, their high cost of production mean that aerial surveys are not carried out as frequently, which makes them unsuited for such a task. At the moment, the DOP-based classification is well suited for accurately researching long-term development of bark beetle damages in a limited area.
+
+journal: "An awesome journal"
+date: "`r Sys.Date()`"
+#linenumbers: true
+numbersections: true
+figsintext: true
+floatsintext: yes
+csl: elsevier-harvard.csl
+output: rticles::elsevier_article
+---
+
+\newpage
+
+Introduction
+================
+
+Forests are characterized by a high level of biodiversity and contribute significantly to human well-being through their roles in the ecosystem (de Rigo et al. 2016). In Germany, approximately one third of the surface area is covered by forests (Holzwarth et al. 2020). However, from 2001 to 2020, the tree cover in Germany decreased by 7.5 % (941000 ha) (Global Forest Watch 2022). Besides the expansion of settlement, infrastructure and agriculture, natural hazards like droughts and storms are the main reasons for this decline (Holzwarth et al. 2020). Additionally, extremely warm and dry summers as in 2003, 2018 and 2019 promoted the forest's vulnerability to pests like the European bark beetle (Ips typographus), which increased stress even further (Holzwarth et al. 2020). Across Germany, the amount of insect-related logging in 2020 was 43.3 million cubic meters, which corresponds to 72 % of the total amount of damaged wood (Statistisches Bundesamt 2021). According to the crown condition survey 2020, spruces in particular show negative trends in crown defoliation and dieback rates (BMEL 2021). Marini et al. (2017) expected a further increase of forest damages for all European spruce forests due to climate change and the resulting promotion of bark beetle outbreaks.
+
+Forest monitoring activities such as the in-situ-based crown condition survey (Wellbrock et al. 2018) are helpful to assess forest related stress like insect infestations. However, this approach is time-consuming, expensive and often limited to a small spatial scale (Lausch et al. 2016). Remote sensing can enhance forest monitoring due to larger spatial coverage and higher temporal resolution, and is also cost-effective and less subjective (Holzwarth et al. 2020, Lausch et al. 2016). The detection of bark beetle infested trees in remote sensing images is based on the reflectance differences in the spectral signature of vegetation (Ackermann et al. 2018, Rullan-Silva et al. 2013). This principle was introduced in Lausch et al. (2016) as the concept of spectral traits and spectral trait variations. While vital trees appear green, diseased trees turn brown as a result of chlorophyll reduction (Lausch et al. 2016). The wider spectral range of remote sensors in comparison to the human eye enables a more precise diagnosis of vegetation stress due to such spectral shifts (Lausch et al. 2016, Rullan-Silva et al. 2013).
+
+Specifically regarding bark beetles it is crucial to detect infected trees early to minimize the risk of the outbreak spreading further (Fahse & Heurich 2011). Therefore, several studies were conducted to detect trees in the so-called green-attack stage (e.g. Abdullah et al. 2019a, Ortiz et al. 2013), where they are already killed but foliage remains visually unchanged (Wulder et al. 2006). However, classification of the following infestation stages (red- and gray-attack, Wulder et al. 2006) is also useful, as time series of infested areas can provide indications of future spatiotemporal dynamics (Meddens et al. 2013). Remote sensing based bark beetle detection includes a wide range of platforms, e.g. unmanned aerial vehicles (UAV) (Ackermann et al. 2018), airborne hyperspectral data (Fassnacht et al. 2014), spaceborne optical and thermal data (Abdullah et al. 2019b), or a combined approach including orthophotos (Latifi et al. 2014). Fassnacht et al. (2014) highlighted the wide spectral range of hyperspectral data to map bark beetle-induced tree mortality and reached overall accuracies (OA) of 76 % - 85 % in classifying dead trees and other classes using a support vector machine classification. Latifi et al. (2014) benefited from already existing infestation patches as polygons based on high-resolution color infrared images to train a random forest (RF) classifier on Landsat and SPOT data. Thus, they provided a spatiotemporal prediction of bark beetle attacked areas over a timespan of 10 years with OAs of 56 % - 80 % depending on the number of included classes. Most of the studies mentioned (Abdullah et al. 2019a, Abdullah et al. 2019b, Fassnacht et al. 2014, Latifi et al. 2014) were conducted on part of the Bavarian Forest National Park. Sufficient long-term data are available for this site, e.g. the polygons of infested areas mentioned above, which are based on aerial surveys conducted annually since 1988 (Latifi et al. 2014, Rall & Martin 2002). However, a comparable study does not yet exist for the Harz region, a German low mountain range where bark beetle infestation is particularly evident.
+
+The goal of this study was to map tree mortality, most likely caused by bark beetles, for a part of the Harz National Park (HNP) over a timespan of 8 years (2012 - 2020). To do so, the RF classifier (Breiman 2001) was applied using self-digitized training polygons based on digital orthophotos (DOP). We investigated the benefits of such high-resolution DOPs to classify and quantify forest dieback. The classification results were used to explore how the area of vital and non-vital forest changed during the observed timespan by visualizing its spatiotemporal development. This study can be seen as a pretest for a large-scale application on the whole HNP.
+
+Materials and Methods
+========================
+
+## Study area\
+
+The Harz is a low mountain range in the middle of Germany in the federal states of Lower Saxony, Saxony-Anhalt and Thuringia. This study was carried out in a 2 km x 2 km tile within the HNP in Saxony-Anhalt at the border to Lower Saxony (51° 48' 1'' N, 10° 33' 58'' E) (Fig. 1). The HNP covers a total area of 24.732 ha, which is about 10 % of the total area of the Harz mountains (Nationalparkverwaltung Harz 2022). The next climate station is located on the Brocken, the highest mountain of the Harz, where the climatological mean annual temperature is 2.9 °C and the mean annual precipitation 1814 mm (period of reference 1961-1990) (DWD Climate Data Center 2022). However, the values for our research area may vary slightly due to topographical differences. The vegetation of the HNP is mainly characterized by forest, dominated by European beech (Fagus sylvatica) at lower altitudes and Norway spruce (Picea abies) at higher elevations (Nationalparkverwaltung Harz 2022). However, spruce was cultivated far beyond its natural distribution at lower elevation for economical reasons (Nabu Sachsen-Anhalt 2020). They are highly susceptible to dryness and heat, while the bark beetle benefits from such conditions (Bentz & Jönsson 2015). This led to massive bark beetle infestations in recent years (Nationalparkverwaltung Harz 2020). On a large part of the area in the HNP including the investigated tile, human intervention is minimized, promoting the occurrence of natural forest dynamics. This means that the bark beetle is only controlled in the border area to protect neighboring commercial forests (Nationalparkverwaltung Harz 2022).
+
+## Data\
+
+DOPs provided by the Federal Office for Geodetic Survey and Geoinformation Saxony-Anhalt  (LVermGeo) were used for analysis. The DOPs come in a tile-size of 2 km x 2 km with a spatial resolution of 20 cm and include four spectral bands: red, green, blue and near infrared (RGBI; LVermGeo 2022). Five DOPs were used to cover a timespan of 8 years (from 2012 to 2020) in 2-year intervals. The dates of recording were on the 20th May 2012, 18th September 2014, 7th May 2016, 4th May 2018 and 18th April 2020.
+
+\graphicspath{ {./figures/} }
+
+\begin{figure*}[t]
+\begin{center}
+\includegraphics[scale=0.8]{study_area}
+\caption{Location of the HNP and example aerial photo (true color composite) of the study area from 2016.}
+\tiny{Data: GeoBasis-DE / BKG (2022a): shp Germany; GeoBasis-DE / BKG (2022a): DTM Germany; NLWKN (2022): shp National Parks; LVermGeo (2022): DOP}
+\end{center}
+\end{figure*}
+
+## Methods\
+
+### Target classes and Predictors
+
+The forest was classified into four classes - *vital*, *non-vital*, *cut*, and *other* - using a supervised pixel-based RF machine learning approach. Multiple polygons per class and year were drawn on each DOP manually using QGIS 3.16.7. As we did not have access to spatially discrete information about infested forest patches, all gray- and brownish, damaged spruces were included in the non-vital class, representing beetle damage. The red, green, blue and infrared bands as well as 13 spectral vegetation indices derived from these bands were used as predictors (Tab. 1). Most of these indices have been shown to be sensitive to stress-induced changes in chlorophyll content and are therefore suitable for predicting tree health (Abdullah et al. 2019a, Abdullah et al. 2019b, Huo et al. 2021).
+
+### DOP Processing
+
+For each DOP, the red, green, blue and infrared spectral bands as well as the derived indices (Tab. 1) were stacked in a rasterStack in R (R Core Team 2022) using the raster package (Hijmans 2021). The pixel information of the created rasterStacks inside the polygons was extracted using the exact_extract-function from the exactextractr package (Baston 2021). This way, information gain from the orthophotos was maximized. The extracted data was balanced to 8000 sample pixels from each class every year to avoid bias. Furthermore, correlated predictors were removed, using a cutoff value of r = 0.9.
+
+\begin{table*}[t]
+\renewcommand{\arraystretch}{2}
+\begin{center}
+\caption{Spectral indices used in this study. NIR = near-infrared.}
+\scalebox{0.8}{
+ \begin{tabular}{l  l  c  l} 
+ \hline
+ \\
+ \textbf{Name} & \textbf{Abbrev.} & \textbf{Formula} & \textbf{References} \\ [1ex]
+ \hline
+ Normalized Difference Vegetaion Index & NDVI & $\frac{NIR - Red}{NIR + Red}$ & Tucker 1979 \\ [1.5ex]
+ 
+ Visible Atmospherically Resistant Index & VARI & $\frac{Green - Red}{Green + Red - Blue}$ & Gitelson et al. 2002 \\ [1.5ex]
+
+ Triangular Greenness Index & TGI & $-0.5 (190 (Red - Green) - 120 (Red - Blue))$ & Hunt et al. 2001 \\ [1.5ex]
+
+ Triangular Vegetation Index & TVI & $0.5 (120 (NIR - Green) - 200 (Red - Green))$ & Broge and Leblanc 2001 \\ [1.5ex]
+ 
+ Normalized Green Red Difference Index & NGRDI & $\frac{Green - Red}{Green + Red}$ & Tucker 1979 \\ [1.5ex]
+ 
+ Chlorophyll Vegetation Index & CVI & $\frac{NIR \times Red}{Green \times Green}$ & Vincini et al. 2008 \\ [1.5ex]
+ 
+ Green Leaf Index & GLI & $\frac{2 \times (Green - Red - Blue)}{2 \times (Green + Red + Blue)}$ & Gobron et al. 2000 \\ [1.5ex]
+ 
+ Green Normalized Difference Vegetation Index & GNDVI & $\frac{NIR - Green}{NIR + Green}$ & Gitelson et al. 1996 \\ [1.5ex]
+ 
+ Blue Normalized Difference Vegetation Index & BNDVI & $\frac{NIR - Blue}{NIR + Blue}$ & Hancock and Dougherty 2007 \\ [1.5ex]
+ 
+ Chlorophyll Index Green & CIG & $\frac{NIR}{Green} - 1$ & Gitelson et al. 2003 \\ [1.5ex]
+ 
+ Plant Pigment Ratio & PPR & $\frac{Green - Blue}{Green + Blue}$ & Metternicht 2003 \\ [1.5ex]
+ 
+ Simple Ratio / Ratio Vegetation Index & RS / SVI & $\frac{NIR}{Red}$ & Jordan 1969 \\ [1.5ex]
+ 
+ Shadow Index / Ratio Vegetation Index & SI & $((256 - Blue) \times (256 - Green) \times (256 - Red))^\frac{1}{3}$ & Rikimaru et al. 2002 \\ [1ex]
+ \hline
+ \end{tabular}}
+ \end{center}
+\end{table*}
+
+### Classification and Validation
+
+For the purpose of validation and evaluation of the model efficiency, the raw dataset was split into training and testing data in a 80 to 20 ratio using the caret package (Kuhn 2021). The model was created with the same package, trained on the training data and set up to predict the testing data. During model construction, a forward feature selection was applied to pick the best suited predictor variables. For this purpose, the ffs-function implemented in the package CAST (Meyer 2021) with the method ranger from the ranger package (Wright & Ziegler 2017) was used. In order to reduce spatial autocorrelation, the leave-location-out cross validation method from the CAST package was applied. The final decision forest consisted of 100 trees using a tuning grid with mtry = 1 and a minimum node size of 15 using the extratrees split rule. Subsequently, the model was used to classify vital, non-vital, cut, and other pixels on the DOPs of the study area recorded in 2012, 2014, 2016, 2018 and 2020. Finally, the areas of the vital and non-vital classes were calculated and the spatiotemporal dynamics of the classification results displayed on a map.
+
+Results
+=======
+
+## Model Creation and Feature Selection\
+
+After removing the red, green and blue bands as well as the NDVI and the CIG due to correlations, 12 predictors remained in the training data set. The forward feature selection revealed a peak in model accuracy with 6 predictors (Fig. 2). Thus, the final training data set consisted of these 6 selected variables, namely the TGI, the NGRDI, the GNDVI, the infrared band, the VARI, and the GLI (Tab. 2).
+
+## Validation\
+
+The validation results are listed in Tab. 3. The test data validation revealed an OA of ~0.74 and a kappa value of ~0.66. The vital class was predicted best with a user’s and a producer’s accuracy (UA and PA) of more than ~90 %. Forest cut featured the worst prediction, with only ~53 % of the pixels identified correctly. Most of the time it was wrongly classified as non-vital or other. Non-vital forest was classified correctly in ~75 % of the testing pixels. About 15 % of the remaining non-vital pixels were falsely classified as forest cut.
+
+\begin{figure}[!hb]
+\begin{center}
+\includegraphics[scale=0.6]{model_accuracy_all}
+\caption{Mean performance for each model run with error bars representing the standard errors from cross validation. Triangles indicate the best model from the respective number of variables used.}
+\end{center}
+\end{figure}
+
+## Prediction\
+
+The results of the predictions can be found in the following figures (Fig. 3a-e). In all five years, the area was mainly classified as vital forest. Non-vital forest could only be found in very few areas until 2018. In 2020, non-vital forest increased heavily, especially in the north. Forest cut also increased with the years but not as heavily as non-vital forest. Forest cut was often detected in the south-east, in 2020 in the north as well. The other class decreased from 2012 to 2020.
+
+\begin{table}[!ht]
+\begin{flushleft}
+\caption{Model performance using different predictors to predict vital and non-vital forest areas.}
+\scalebox{0.8}{
+ \begin{tabular}{l  c} 
+ \\
+ \hline \\
+ \textbf{Predictors} & \textbf{Model accuracy} \\ [1ex]
+ \hline \\
+ TGI + NGRDI & 0.6304 \\ [2ex]
+ 
+ +GNDVI & 0.6543 \\ [2ex]
+
+ +Infrared & 0.6734 \\ [2ex]
+
+ +VARI & 0.6765 \\ [2ex]
+ 
+ +GLI & 0.6766 \\ [1ex]
+ \hline
+ \end{tabular}}
+ \end{flushleft}
+\end{table}
+
+## Temporal dynamic\
+
+Fig. 4 shows the vital loss of each year in one map. As already seen on the prediction maps, increase in non-vital forest mostly occurred in the north and in some parts in the west and south. The highest amount of loss was found in 2020, which is displayed in Fig. 5. In 2018 and the years before, only around 10 ha of non-vital forest were detected each year. A minor exception can be seen in 2014, when a small peak of 20 ha of non-vital forest was classified. In 2020, non-vital areas rose to approximately 60 ha. At the same time, the vital area decreased to 170 ha, its lowest value during the sample period.
+
+\begin{table*}[!h]
+\begin{center}
+\caption{Confusion matrix for the test data.}
+\scalebox{0.8}{
+ \begin{tabular}{l  c  c  c  c  c} 
+ \hline
+ \\
+ \textbf{} & \textbf{Predicted forest cut} & \textbf{Predicted non-vital} & \textbf{Predicted vital} & \textbf{Predicted other} & \textbf{User's accuracy (UA)} \\ [2ex]
+ \hline
+ \\
+ \textbf{Observed forest cut} & \textbf{4235} & 1829 & 264 & 1671 & 0.53 \\ [2ex]
+ 
+ \textbf{Oberved non-vital} & 1214 & \textbf{6012} & 236 & 535 & 0.75 \\ [2ex]
+ 
+ \textbf{Oberved vital} & 78 & 68 & \textbf{7716} & 90 & 0.97 \\ [2ex]
+ 
+ \textbf{Oberved other} & 1229 & 618 & 330 & \textbf{5822} & 0.73 \\ [2ex]
+ 
+ \textbf{Producer's accuracy (PA)} & 0.63 & 0.71 & 0.90 & 0.72 & \textbf{OA $\tilde{}$ 0.74} \\ [2ex]
+ \hline
+ \end{tabular}}
+ \end{center}
+\end{table*}
+
+\begin{figure*}[!h]
+\begin{center}
+\includegraphics{prediction}
+\caption{Classification of the HNP 2 by 2 km tile for the years 2012 (a), 2014 (b), 2016 (c), 2018 (d), and 2020 (e).}
+\end{center}
+\end{figure*}
+
+\begin{figure*}[!h]
+\begin{center}
+\includegraphics[scale=0.4]{forest_area_change_mapplot}
+\caption{Spatiotemporal dynamics of non-vital areas.}
+\end{center}
+\end{figure*}
+
+\begin{figure*}[!h]
+\begin{center}
+\includegraphics[scale=0.8]{forest_area_change_barplot}
+\caption{Temporal dynamics of vital and non-vital areas.}
+\end{center}
+\end{figure*}
+
+Discussion
+==========
+
+The detection of bark beetle-induced forest damage using remote sensing-based machine learning approaches is a widely used method and has already been applied in several regions of the world, e.g. the USA (Gomez et al. 2020, Meddens et al. 2013), Russia (Kislov et al. 2021, Safonova et al. 2019), Sweden (Huo et al. 2021), and Germany (Abdullah et al. 2019a, Abdullah et al. 2019b, Fassnacht et al. 2014, Latifi et al. 2014, Ortiz et al. 2013). In Germany, studies are mostly restricted to the Bavarian Forest National Park. For our study area in the HNP, we demonstrated a clear trend, with a notable increase of non-vital area from 2018 to 2020, while the non-vital forest area up to 2018 was relatively constant (Fig. 5). This result corresponds with observations of the HNP administration, according to which the first major outbreak in 2018 infested 394.7 ha, but grew to 3030.3 ha in 2019 in response to drought and warm temperatures (Nationalparkverwaltung Harz 2020).
+
+However, we cannot say with certainty that the observed increase in non-vital area was caused by bark beetle infestation alone. The spectral trait variations, most obviously recognizable in the crown color changing from green to brown (Kislov et al. 2021), can have various causes, e.g. soil limitations or acid rain (Lausch et al. 2016). Considering the climatic conditions in our study area in recent years, it is not possible to differentiate between trees infested and killed by bark beetles and trees which simply died due to high temperatures and drought (Kislov et al. 2021, Miller et al. 2020). Yet, in light of the known bark beetle occurrence in the HNP, we do see it as the most likely reason and as already mentioned, such conditions favor bark beetle infestation by weakening the spruces’ defenses against pests (Bentz & Jönsson 2015, Nationalparkverwaltung Harz 2020, Netherer et al. 2015). In-situ field verification is therefore essential to improve and confirm remote sensing observations (Pause et al. 2016). Future research could conduct such comprehensive in-situ data of bark beetle occurence in the study area to confirm that the observed trend in forest vitality is indeed correlated to bark beetle infestations. Such ground truth data could also be used for training, as has been done for example in studies in the Bavarian Forest National Park to obtain a more valid prediction (Abdullah et al. 2019a, Abdullah et al. 2019b).
+
+It should be noted, that while the model was able to differentiate fairly well between vital and all other classes (UA ~0.97), the classification was less accurate regarding the discrimination between non-vital trees, cut trees and other areas. Cut trees were often falsely classified as non-vital or other, as is reflected in the rather poor UA of ~0.53 (Tab. 3). Non-vital trees as well as other areas were mainly misclassified as cut trees, both classes showed intermediate UA’s of ~0.75 and ~0.73, respectively (Tab. 3). A previous study encountering similar problems while investigating the central European landscape recommended the addition of altitude information from LiDAR data to improve accuracy (Fassnacht et al. 2014). As this was not possible in this study because of time and data limitations, we recommend testing this approach in future research studies in the HNP.
+
+Furthermore, we investigated the usage of high-resolution DOPs to classify and quantify forest dieback due to bark beetles and found that they have several pros and cons. The high spatial resolution of 20 cm enabled a precise detection of even small bark beetle spots, which is highly useful for analysis of spatial outbreak dynamics. Small infestation spots north of our study area were already visible in the years before the major spread in 2020, suggesting the usage of high-resolution DOPs particularly for early detection. However, DOPs by the German Federal Offices for Geodetic Survey are produced only in 2-year intervals, which makes them unsuited for such a task. A proper early warning system would require more frequent, at least annual overflights preferably during the late autumn, to provide enough time to cut down the infested trees and remove them from the forest. Further research is recommended to explore low cost opportunities for this task, e.g. a recording campaign exclusively for forests via private aircraft or UAV. Previous studies also highlighted the utilization of high-resolution imagery for mapping bark beetle infestations and showed reliable results for both scattered (Gomez et al. 2020) and more clustered outbreaks (Abdullah et al. 2019a). However, these studies used satellite data from Sentinel-2 with a spatial resolution of 10 to 20 m, which illustrates the potential of much higher-resolution DOPs for an accurate detection of infested spots, possibly even at the level of individual trees. However, the area covered by DOPs (in our case 400 ha) is significantly smaller compared to satellite imagery, preventing larger applications. For a classification in larger areas, it would be possible to define training polygons based on DOPs, while the training process and the final prediction would be performed on satellite data, as it was realized by Latifi et al. (2014) with Landsat and SPOT data. For a large-scale application on the whole HNP, we recommend using Sentinel-2, as it has been proven in previous studies (Abdullah et al. 2019a, Gomez et al. 2020, Huo et al. 2021). Another question is the applicability of the model on other low mountain ranges in Europe, which could also be pursued in future research.
+
+A disadvantage of using DOPs is the limited derivation of spectral indices, as only four bands are available for their calculation. Abdullah et al. (2019a) highlighted the potential of red-edge and water-related indices to detect bark beetle attacks. However, these require red-edge or short-wave infrared (SWIR) bands, respectively. Huo et al. (2021) used the linear relationship between the red and SWIR bands to introduce the Normalized Distance Red & SWIR (NDRS) index, and thus achieved higher accuracy in detecting bark beetle infestations than with only the otherwise commonly used indices. Moreover, band 10 in the thermal range of Landsat-8 TIR sensor has also proven useful in separating infested and healthy trees (Abdullah et al. 2019b). However, different studies showed that the spectral range of 450 - 890 nm, which is included in the used DOPs, is already very well suited for determining the vitality of spruce forest (Lausch et al. 2013). Lausch et al. (2013) found the best spectral characteristics, indicators and derivatives for vitality classification to be based on chlorophyll absorption features, located in the mentioned spectral range. Only a small amount of spectral information and derivatives were found in the SWIR spectral range of 1400 - 1800 nm, recording the spruce's water content (Lausch et al. 2013). While emphasizing the suitability of hyperspectral data, Fassnacht et al. (2014) also pointed out that especially well-known spectral traits contributed to high classification accuracies. Further studies on mapping bark beetle-infested trees could directly compare RGBI-based approaches with wider spectral range sensors to obtain which is more suitable.
+
+Another advantage of DOPs is that they are usually taken without clouds, as aircrafts normally fly under the cloud cover (Ackermann et al. 2012). Studies that used satellites had to select cloud-free scenes, so in some cases locations or time periods had to be excluded (Gomez et al. 2020, Latifi et al. 2014), which limits their application.
+
+In novel studies, deep learning approaches are used to classify bark beetle-induced forest damage (Kislov et al. 2021, Safonova et al. 2019). This could be an opportunity to create a more powerful model, as deep learning algorithms such as convolutional neural networks are able to recognize specific patterns in images, for which high-resolution images are particularly suitable (Kislov et al. 2021).
+
+Conclusion
+==========
+
+We used the RF classifier as an pixel-based machine learning approach to detect bark beetle-induced forest damage for a part of the HNP over a timespan of 8 years. High-resolution DOPs allowed us to precisely map the spatiotemporal dynamics of bark beetle infestation. Our results revealed a massive increase in non-vital forest area in 2020, which is consistent with observations of bark beetle outbreaks throughout the HNP in recent years. The close connection of this development with the observed trend in climate change makes the HNP an interesting study area for spatiotemporal analysis of bark beetle dynamics, and we recommend further investigations extended by in-situ data for exact verification. Subsequent studies could try to expand the research area to the whole HNP, e.g. by digitizing the training polygons on base of the DOPs and create a model with data from satellite imagery like Sentinel-2. The DOP-based classification is well suited to study the spatiotemporal development of bark beetle damage in detail on a limited area. Atmospherically induced limitations such as cloud cover do not apply to DOPs, unlike satellite imagery. The limited derivation of spectral indices did not seem particularly detrimental in separating non-vital trees from vital trees. Further tests are recommended to determine if the spectral range covered by DOPs and the derived indices are sufficient for accurate bark beetle mapping, or whether the addition of red-edge and SWIR bands would drastically improve the results.
+
+
+@Marini.2017 sagt auch das und das...
+
+@Fahse.2011 sagt das und das.
+
+So ist das [@Marini.2017].
+
+Und so ist das [@Fahse.2011].
+
+References {#references .unnumbered}
+==========
