@@ -1292,6 +1292,44 @@ dev.off()
 ```
 
 
+```{r}
+# Meaning the .tif files
+for (u in 1:17){
+  
+  files <- list.files(path=paste0(envrmt$path_prediction,"/",u,"/"), pattern="*.tif$", full.names=F, recursive=FALSE) 
+  Extract_string <- paste0("mean.tif")
+  matches <- unique (grep(paste(Extract_string,collapse="|"), files, value=TRUE))
+  
+  # Create raster stack from the selected .tif files 
+  prediction_stack <- stack(paste0(envrmt$path_prediction,"/",u,"/",matches,sep=''))
+  
+  # Calculate the mean from the raster stack
+  prediction_mean <- calc(prediction_stack, fun = mean, na.rm = T)
+  
+  if (u < 10){
+    writeRaster(prediction_mean,paste0(envrmt$path_prediction,"/mean_prediction/prediction_mean_0",u,".tif"))
+  } else if (u >= 10){
+    writeRaster(prediction_mean,paste0(envrmt$path_prediction,"/mean_prediction/prediction_mean_",u,".tif"))
+  }
+}
+  
+# Plot the meant .tif files together 
+library(viridisLite)
+files <- list.files(path=paste0(envrmt$path_prediction,"/mean_prediction/"), pattern="*.tif$", full.names=F, recursive=FALSE)
+prediction_stack <- stack(paste0(envrmt$path_prediction,"/mean_prediction/",files,sep=''))
+
+rasterstacknames <- c("0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17")
+  
+png(file = file.path(envrmt$path_prediction, "full_prediction_study_area.png"), 
+      width =1124, height = 770, res = 80)
+  
+raster::spplot(prediction_stack,names.attr= rasterstacknames,col.regions = plasma(16))
+  
+dev.off()
+
+```
+
+
 
 
 
