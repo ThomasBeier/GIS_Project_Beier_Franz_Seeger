@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.1) (preloaded format=pdflatex 2022.3.9)  7 APR 2022 17:33
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.1) (preloaded format=pdflatex 2022.3.9)  8 APR 2022 09:52
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -705,11 +705,11 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-<./figures//study_area.png, id=43, 436.63126pt x 478.78876pt>
-File: ./figures//study_area.png Graphic file (type png)
-<use ./figures//study_area.png>
-Package pdftex.def Info: ./figures//study_area.png  used on input line 131.
-(pdftex.def)             Requested size: 349.30548pt x 383.03152pt.
+<./figures//study_area.jpg, id=43, 333.318pt x 436.686pt>
+File: ./figures//study_area.jpg Graphic file (type jpg)
+<use ./figures//study_area.jpg>
+Package pdftex.def Info: ./figures//study_area.jpg  used on input line 131.
+(pdftex.def)             Requested size: 266.65474pt x 349.34926pt.
 
 [1{C:/Users/konsti/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}
 
@@ -733,17 +733,17 @@ Underfull \hbox (badness 10000) in paragraph at lines 153--153
 
  []
 
-[2 <./figures//study_area.png>]
+
 Underfull \hbox (badness 10000) in paragraph at lines 160--160
 
  []
 
-
+[2 <./figures//study_area.jpg>]
 Underfull \hbox (badness 10000) in paragraph at lines 167--167
 
  []
 
-<./figures//rmse_wiese_mean_barplot.png, id=69, 542.025pt x 361.35pt>
+<./figures//rmse_wiese_mean_barplot.png, id=68, 542.025pt x 361.35pt>
 File: ./figures//rmse_wiese_mean_barplot.png Graphic file (type png)
 <use ./figures//rmse_wiese_mean_barplot.png>
 Package pdftex.def Info: ./figures//rmse_wiese_mean_barplot.png  used on input 
@@ -754,7 +754,7 @@ Overfull \hbox (8.16904pt too wide) in paragraph at lines 216--217
  [] 
  []
 
-<./figures//rmse_wiese_boxplot.png, id=70, 542.025pt x 361.35pt>
+<./figures//rmse_wiese_boxplot.png, id=69, 542.025pt x 361.35pt>
 File: ./figures//rmse_wiese_boxplot.png Graphic file (type png)
 <use ./figures//rmse_wiese_boxplot.png>
 Package pdftex.def Info: ./figures//rmse_wiese_boxplot.png  used on input line 
@@ -769,7 +769,7 @@ Overfull \hbox (8.16904pt too wide) in paragraph at lines 224--225
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 [3]
-<./figures//heatmap_treetalker_rmse.png, id=79, 1015.3935pt x 695.59875pt>
+<./figures//heatmap_treetalker_rmse.png, id=77, 1015.3935pt x 695.59875pt>
 File: ./figures//heatmap_treetalker_rmse.png Graphic file (type png)
 <use ./figures//heatmap_treetalker_rmse.png>
 Package pdftex.def Info: ./figures//heatmap_treetalker_rmse.png  used on input 
@@ -779,7 +779,7 @@ line 239.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-<./figures//full_prediction_study_area.png, id=80, 1015.3935pt x 695.59875pt>
+<./figures//full_prediction_study_area.png, id=78, 1015.3935pt x 695.59875pt>
 File: ./figures//full_prediction_study_area.png Graphic file (type png)
 <use ./figures//full_prediction_study_area.png>
 Package pdftex.def Info: ./figures//full_prediction_study_area.png  used on inp
@@ -787,32 +787,37 @@ ut line 246.
 (pdftex.def)             Requested size: 507.69551pt x 347.79852pt.
 [4 <./figures//rmse_wiese_mean_barplot.png> <./figures//rmse_wiese_boxplot.png>
 ] [5 <./figures//heatmap_treetalker_rmse.png>]
-Underfull \hbox (badness 4084) in paragraph at lines 289--290
+Underfull \hbox (badness 4084) in paragraph at lines 290--291
 []\T1/lmss/m/n/10 (+20) Deutscher Wet-ter-di-enst (DWD) (2022): Mikroklima.
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 289--290
+Underfull \hbox (badness 10000) in paragraph at lines 290--291
 []$\T1/lmss/m/n/10 (+20) https : / / www . dwd . de / DE / service / lexikon / 
 Functions /
  []
 
 
-Underfull \hbox (badness 7415) in paragraph at lines 289--290
+Underfull \hbox (badness 7415) in paragraph at lines 290--291
 \T1/lmss/m/n/10 (+20) glossar . html ? lv2 = 101640 & lv3 = 101778$[] (Ac-cesse
 d on
  []
 
-[6 <./figures//full_prediction_study_area.png>] [7] (Untitled.aux)
+[6 <./figures//full_prediction_study_area.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 304--305
+[]\T1/lmss/m/n/10 (+20) HLNUG (2018): Air-bone Laser-scan-ning.
+ []
+
+[7] (Untitled.aux)
 Package rerunfilecheck Info: File `Untitled.out' has not changed.
 (rerunfilecheck)             Checksum: E90A894C87E41A64911ADC9A60261767;1153.
  ) 
 Here is how much of TeX's memory you used:
- 14205 strings out of 478582
- 220065 string characters out of 2860757
- 560676 words of memory out of 3000000
- 31941 multiletter control sequences out of 15000+600000
- 525677 words of font info for 144 fonts, out of 8000000 for 9000
+ 14210 strings out of 478582
+ 220375 string characters out of 2860757
+ 560531 words of memory out of 3000000
+ 31943 multiletter control sequences out of 15000+600000
+ 525778 words of font info for 145 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  70i,16n,76p,2030b,374s stack positions out of 5000i,500n,10000p,200000b,80000s
 {D:/MiKTeX/fonts/enc/dvips/lm/lm-ts1.enc}{D:/MiKTeX/fonts/enc/dvips/lm/lm-ec.
@@ -820,9 +825,9 @@ enc}<D:/MiKTeX/fonts/type1/public/lm/lmss10.pfb><D:/MiKTeX/fonts/type1/public/l
 m/lmss12.pfb><D:/MiKTeX/fonts/type1/public/lm/lmss8.pfb><D:/MiKTeX/fonts/type1/
 public/lm/lmssbx10.pfb><D:/MiKTeX/fonts/type1/public/lm/lmsso10.pfb><D:/MiKTeX/
 fonts/type1/public/lm/lmsso8.pfb><D:/MiKTeX/fonts/type1/public/lm/lmtt8.pfb>
-Output written on Untitled.pdf (7 pages, 1003033 bytes).
+Output written on Untitled.pdf (7 pages, 1065786 bytes).
 PDF statistics:
- 168 PDF objects out of 1000 (max. 8388607)
+ 166 PDF objects out of 1000 (max. 8388607)
  36 named destinations out of 1000 (max. 500000)
  33386 words of extra memory for PDF output out of 35830 (max. 10000000)
 

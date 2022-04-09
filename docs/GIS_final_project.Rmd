@@ -1289,6 +1289,29 @@ levelplot(value ~ amount_station_out*variable, data=df_results_grouped_long  ,xl
           col.regions = cols)
          
 dev.off()
+
+# Calculate the mean RMSE for each station
+mean_each_station <- aggregate(df_results_grouped_long[, 3], list(df_results_grouped_long$amount_station_out), mean)
+#mean_each_station$Group.1 <-  substr(mean_each_station$Group.1, 12, 13)
+mean_each_station_sd <- aggregate(df_results_grouped_long[, 3], list(df_results_grouped_long$amount_station_out), sd)
+mean_each_station$sd <- mean_each_station_sd$x
+# Umbennen der Spalten
+names(mean_each_station)[2] <- "mean_v"
+
+png(file = file.path(envrmt$path_prediction, "mean_rmse_gesamt_barplot.png"), 
+      width =600, height = 400, res = 80)
+
+ggplot(mean_each_station, aes(x=Group.1, y=mean_v)) + 
+  geom_bar(stat = "identity")+#,fill = "blue",color = "black")+
+  xlab("Number of stations left out")+
+  ylab("Mean RMSE")+
+  geom_errorbar(aes(x = Group.1,
+                ymin = mean_v-sd,
+                ymax = mean_v+sd),
+                width = 0.5, size = 0.8)
+
+dev.off()
+
 ```
 
 
