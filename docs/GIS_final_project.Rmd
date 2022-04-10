@@ -20,7 +20,8 @@ require(envimaR)
 
 packagesToLoad = c("mapview", "raster", "sf", "caret", "exactextractr",  
                    "doParallel", "CAST", "ranger","rasterVis","dplyr",
-                   "lidR", "RColorBrewer")
+                   "lidR", "RColorBrewer","viridisLite","data.table",
+                   "lattice")
 
 # Define a project rootfolder
 # This is the mandantory rootfolder of the whole project, "E:/" has to be changed to the respective directory where the edu folder is located 
@@ -615,21 +616,6 @@ if (!file.exists(file.path(envrmt$path_model_training_data, "df_train_with_stati
   testing <- readRDS(file.path(envrmt$path_model_training_data, "df_test_with_station.RDS"))
 }
 ```
-
-```{r}
-# Splitting the dataset from Reudenbach. 
-#df_final_reudenbach <- readRDS(file.path(envrmt$path_processed, "trainDFmcClean.RDS"))
-
-
-# Set seed
-#set.seed(11)
-  
-# Split data into 80% for training and 20% for testing
-#train_index <- caret::createDataPartition(df_final_reudenbach$temp, p = 0.8, list = FALSE)
-#training <- df_final_reudenbach[train_index,]
-#testing <- df_final_reudenbach[-train_index,]
-```
-
 
 ### Create a random forest model using a Leave-Location-Out Cross-Validation (LLOCV) and Forward-Feature-Selection (FFS)
 
@@ -1236,7 +1222,7 @@ png(file = file.path(envrmt$path_prediction, "rmse_wiese_mean_barplot.png"),
 ggplot(df_rmse_gesamt_mean, aes(x = amount_station_out, y = rmse_wiese_mean)) +
   geom_bar(stat = "identity", fill = "black", alpha = 0.6) + 
   scale_x_continuous(breaks = 1:17) + 
-  labs(x = "Number of stations left out", y = "Mean RMSE") + 
+  labs(x = "Number of loggers omitted", y = "Mean RMSE (°C)") + 
   geom_errorbar(aes(x = amount_station_out,
                     ymin = rmse_wiese_mean-rmse_wiese_sd,
                     ymax = rmse_wiese_mean+rmse_wiese_sd),
@@ -1252,7 +1238,7 @@ png(file = file.path(envrmt$path_prediction, "rmse_wiese_boxplot.png"),
 
 ggplot(df_full_results, aes(x = amount_station_out, y = rmse_wiese_station)) +
   geom_boxplot() +
-  labs(x = "Number of stations left out", y = "RMSE")
+  labs(x = "Number of loggers omitted", y = "RMSE (°C)")
 
 dev.off()
 ```
@@ -1260,10 +1246,6 @@ dev.off()
 ### Heatmap
 
 ```{r}
-library(lattice)
-library(data.table)
-library(viridisLite)
-
 # Creating a new variable to not overwrite the "main" result table. 
 df_full_results2 <- df_full_results[,-c(2:8)]
 
@@ -1284,8 +1266,8 @@ png(file = file.path(envrmt$path_prediction, "heatmap_treetalker_rmse.png"),
       width =1124, height = 770, res = 80)
 
 # Create levelplot
-levelplot(value ~ amount_station_out*variable, data=df_results_grouped_long  ,xlab="Number of stations left out",
-          ylab = "Treetalker stations",
+levelplot(value ~ amount_station_out*variable, data=df_results_grouped_long  ,xlab="Number of loggers omitted",
+          ylab = "Loggers",
           col.regions = cols)
          
 dev.off()
@@ -1302,9 +1284,9 @@ png(file = file.path(envrmt$path_prediction, "mean_rmse_gesamt_barplot.png"),
       width =600, height = 400, res = 80)
 
 ggplot(mean_each_station, aes(x=Group.1, y=mean_v)) + 
-  geom_bar(stat = "identity")+#,fill = "blue",color = "black")+
-  xlab("Number of stations left out")+
-  ylab("Mean RMSE")+
+  geom_bar(stat = "identity")+
+  xlab("Number of loggers omitted")+
+  ylab("Mean RMSE (°C)")+
   geom_errorbar(aes(x = Group.1,
                 ymin = mean_v-sd,
                 ymax = mean_v+sd),
@@ -1315,7 +1297,7 @@ dev.off()
 ```
 
 
-```{r}
+```{r warning=FALSE}
 # Meaning the .tif files
 for (u in 1:17){
   
@@ -1337,7 +1319,6 @@ for (u in 1:17){
 }
   
 # Plot the meant .tif files together 
-library(viridisLite)
 files <- list.files(path=paste0(envrmt$path_prediction,"/mean_prediction/"), pattern="*.tif$", full.names=F, recursive=FALSE)
 prediction_stack <- stack(paste0(envrmt$path_prediction,"/mean_prediction/",files,sep=''))
 
